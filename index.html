@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Gestión Corporativo</title>
+    <!-- Framework de Estilos (Tailwind) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconografía -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <!-- Enlace al archivo CSS externo -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-full bg-slate-950 text-slate-200 overflow-hidden">
+    <div id="app" class="h-full w-full flex flex-col overflow-auto">
+        
+        <!-- SECCIÓN: BIENVENIDA -->
+        <section id="landing-page" class="h-full w-full flex flex-col bg-gradient-to-br from-slate-900 to-slate-950">
+            <header class="p-6 flex justify-between items-center border-b border-white/5">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="database" class="text-indigo-500"></i>
+                    <span class="font-bold text-xl tracking-tight">SISTEMA GESTOR</span>
+                </div>
+                <button id="landing-login-btn" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-lg font-medium transition-all">
+                    Acceder
+                </button>
+            </header>
+            <div class="flex-1 flex flex-col items-center justify-center text-center px-4">
+                <h1 class="text-5xl md:text-7xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-500">
+                    Control de Unidades
+                </h1>
+                <p class="max-w-xl text-slate-400 text-lg mb-10">
+                    Plataforma centralizada para la gestión de registros operativos, reportes y seguimiento de archivos por unidad.
+                </p>
+                <button id="landing-hero-btn" class="bg-white text-slate-950 px-8 py-4 rounded-xl font-bold hover:bg-indigo-100 transition-transform active:scale-95">
+                    Empezar Ahora
+                </button>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: LOGIN -->
+        <section id="login-screen" class="hidden h-full w-full flex items-center justify-center bg-slate-950">
+            <div class="w-full max-w-md p-8 bg-slate-900 rounded-2xl border border-white/10 shadow-2xl">
+                <div class="text-center mb-8">
+                    <div class="inline-block p-3 bg-indigo-500/10 rounded-2xl mb-4">
+                        <i data-lucide="shield-check" class="w-10 h-10 text-indigo-500"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Iniciar Sesión</h2>
+                    <p class="text-slate-400 text-sm">Selecciona tu nivel de acceso</p>
+                </div>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Usuario</label>
+                        <input id="login-user" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Rol</label>
+                        <select id="login-role" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none cursor-pointer">
+                            <option value="admin">Administrador</option>
+                            <option value="viewer">Visualizador</option>
+                        </select>
+                    </div>
+                    <button id="login-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all">
+                        Entrar al Sistema
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: PANEL PRINCIPAL -->
+        <section id="main-app" class="hidden h-full w-full flex flex-col">
+            <header class="bg-slate-900/50 backdrop-blur-md border-b border-white/5 px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <span class="font-bold text-indigo-400">DASHBOARD</span>
+                    <span id="role-badge" class="text-[10px] px-2 py-0.5 rounded-full border"></span>
+                </div>
+                <button id="logout-btn" class="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-colors">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+            </header>
+
+            <main class="flex-1 p-6 lg:p-10 space-y-8">
+                <!-- Grid de Unidades -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="unit-card p-6 bg-slate-900 border border-white/5 rounded-2xl cursor-pointer" data-unit="Unidad 1">
+                        <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+                            <i data-lucide="building" class="text-blue-500"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Unidad 1</h3>
+                        <p class="text-slate-500 text-sm">Norte Comercial</p>
+                    </div>
+                    <div class="unit-card p-6 bg-slate-900 border border-white/5 rounded-2xl cursor-pointer" data-unit="Unidad 2">
+                        <div class="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-4">
+                            <i data-lucide="factory" class="text-emerald-500"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Unidad 2</h3>
+                        <p class="text-slate-500 text-sm">Planta Industrial</p>
+                    </div>
+                    <div class="unit-card p-6 bg-slate-900 border border-white/5 rounded-2xl cursor-pointer" data-unit="Unidad 3">
+                        <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+                            <i data-lucide="truck" class="text-purple-500"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Unidad 3</h3>
+                        <p class="text-slate-500 text-sm">Logística Integral</p>
+                    </div>
+                    <div class="unit-card p-6 bg-slate-900 border border-white/5 rounded-2xl cursor-pointer" data-unit="Unidad 4">
+                        <div class="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center mb-4">
+                            <i data-lucide="users" class="text-amber-500"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Unidad 4</h3>
+                        <p class="text-slate-500 text-sm">Recursos Humanos</p>
+                    </div>
+                </div>
+
+                <!-- Tabla de Datos -->
+                <div class="bg-slate-900 rounded-3xl border border-white/5 overflow-hidden">
+                    <div class="p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold" id="table-title">Registros Globales</h2>
+                            <p class="text-slate-500 text-sm">Visualización de datos por unidad</p>
+                        </div>
+                        <button id="add-record-btn" class="hidden bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl text-sm font-bold transition-all">
+                            + Nuevo Reporte
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-800/50 text-slate-500 text-[10px] uppercase tracking-widest font-bold">
+                                <tr>
+                                    <th class="px-6 py-4">Descripción</th>
+                                    <th class="px-6 py-4">Unidad</th>
+                                    <th class="px-6 py-4">Estado</th>
+                                    <th class="px-6 py-4 text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body" class="divide-y divide-white/5">
+                                <!-- Filas por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </section>
+    </div>
+
+    <!-- Enlace al archivo JS externo -->
+    <script src="app.js"></script>
+</body>
+</html>
