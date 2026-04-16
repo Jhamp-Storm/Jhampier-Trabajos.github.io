@@ -271,8 +271,8 @@
         <div class="login-card-title">Ingresar</div>
         <div class="login-card-sub" style="margin-bottom:1.5rem">Usuario y contraseña</div>
         <div style="margin-bottom:1rem">
-          <label class="login-field-label">Usuario</label>
-          <input id="login-user" type="text" class="login-field-input" placeholder="Tu usuario..." autocomplete="username">
+          <label class="login-field-label">Correo electrónico</label>
+          <input id="login-user" type="email" class="login-field-input" placeholder="correo@ejemplo.com" autocomplete="username">
         </div>
         <div style="margin-bottom:1.75rem">
           <label class="login-field-label">Contraseña</label>
@@ -285,7 +285,7 @@
           <i class="bi bi-box-arrow-in-right"></i> Entrar al panel
         </button>
         <div style="margin-top:1.25rem;padding:0.75rem;background:rgba(245,240,232,0.05);border-radius:6px;font-size:0.75rem;color:rgba(245,240,232,0.4);font-family:'Space Mono',monospace;text-align:center">
-          MODO DEMO — sin backend real configurado
+          Ingresa con tu correo y contraseña
         </div>
       </div>
 
@@ -551,7 +551,7 @@ CREATE TABLE users (
 -- Insertar el ÚNICO administrador (cambia la contraseña)
 -- Usar pgcrypto para hashear: crypt('TU_PASS', gen_salt('bf'))
 INSERT INTO users (username, full_name, password_hash, role)
-VALUES ('admin', 'Administrador', crypt('admin123', gen_salt('bf')), 'admin');
+VALUES ('newkevingc@gmail.com', 'Administrador', crypt('kohana160', gen_salt('bf')), 'admin');
 
 -- Habilitar pgcrypto si no está activo
 CREATE EXTENSION IF NOT EXISTS pgcrypto;</code>
@@ -714,12 +714,10 @@ let allRecords  = {};    // { unit1: [], unit2: [], ... }
 let currentUnit = null;
 let deleteTarget = null;
 
-// Contraseña de admin en demo (sin Supabase)
-const DEMO_ADMIN = { user: 'admin', pass: 'admin123' };
+// Credenciales del administrador único
+const DEMO_ADMIN = { user: 'newkevingc@gmail.com', pass: 'kohana160' };
 // Visualizadores demo (en memoria)
-let demoViewers = [
-  { user: 'viewer1', pass: 'viewer123', name: 'Visualizador Demo' }
-];
+let demoViewers = [];
 
 const UNITS = [
   { id: 'unit1', table: 'unit1_records', label: 'Unidad 1', color: '#e84c0e', num: '01' },
@@ -801,7 +799,7 @@ async function doLogin() {
       if (viewer) {
         await setupSession(username, viewer.name, 'viewer');
       } else {
-        showLoginError('Usuario o contraseña incorrectos. (Demo: admin/admin123 o viewer1/viewer123)');
+        showLoginError('Usuario o contraseña incorrectos.');
       }
     }
   }
@@ -819,7 +817,7 @@ async function doRegister() {
   if (!fullName || !username || !pass) { showLoginError('Todos los campos son requeridos.'); return; }
   if (pass.length < 6) { showLoginError('La contraseña debe tener al menos 6 caracteres.'); return; }
   if (pass !== pass2)  { showLoginError('Las contraseñas no coinciden.'); return; }
-  if (username === DEMO_ADMIN.user) { showLoginError('Ese nombre de usuario no está disponible.'); return; }
+  if (username === DEMO_ADMIN.user || username === 'newkevingc@gmail.com') { showLoginError('Ese nombre de usuario no está disponible.'); return; }
 
   hideMessages();
 
