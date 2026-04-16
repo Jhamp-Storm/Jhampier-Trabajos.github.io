@@ -715,7 +715,7 @@ let currentUnit = null;
 let deleteTarget = null;
 
 // Credenciales del administrador único
-const DEMO_ADMIN = { user: 'newkevingc@gmail.com', pass: 'kohana160' };
+const DEMO_ADMIN = { user: 'newkevingc', pass: 'kohana160' };
 // Visualizadores demo (en memoria)
 let demoViewers = [];
 
@@ -774,8 +774,14 @@ async function doLogin() {
 
   hideMessages();
 
+  // ── Admin hardcodeado: siempre tiene prioridad, con o sin Supabase
+  if (username === DEMO_ADMIN.user && password === DEMO_ADMIN.pass) {
+    await setupSession(username, 'Administrador', 'admin');
+    return;
+  }
+
   if (sbReady && sb) {
-    // ── Supabase: llamar función RPC verify_login
+    // ── Supabase: RPC para visualizadores registrados
     try {
       const { data, error } = await sb.rpc('verify_login', {
         p_username: username,
@@ -791,16 +797,12 @@ async function doLogin() {
       showLoginError('Error al conectar: ' + e.message);
     }
   } else {
-    // ── Demo mode
-    if (username === DEMO_ADMIN.user && password === DEMO_ADMIN.pass) {
-      await setupSession(username, 'Administrador', 'admin');
+    // ── Demo mode (visualizadores en memoria)
+    const viewer = demoViewers.find(v => v.user === username && v.pass === password);
+    if (viewer) {
+      await setupSession(username, viewer.name, 'viewer');
     } else {
-      const viewer = demoViewers.find(v => v.user === username && v.pass === password);
-      if (viewer) {
-        await setupSession(username, viewer.name, 'viewer');
-      } else {
-        showLoginError('Usuario o contraseña incorrectos.');
-      }
+      showLoginError('Usuario o contraseña incorrectos.');
     }
   }
 }
