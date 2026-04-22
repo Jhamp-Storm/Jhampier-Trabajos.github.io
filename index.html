@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
       --ink:      #0d0d0d;
@@ -209,19 +210,39 @@
     .file-card-owner { font-size: 0.7rem; color: var(--muted); }
 
     /* ── PÁGINA VISOR DE ARCHIVO ── */
-    #page-viewer { background: var(--ink2); height: 100vh; }
-    .viewer-header { background: var(--ink); color: var(--paper); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 2px solid var(--fire); flex-shrink: 0; }
-    .viewer-filename { font-family: 'Clash Display', sans-serif; font-size: 0.95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; color: var(--paper); }
-    .viewer-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-    .viewer-pdf-wrap { flex: 1; width: 100%; min-height: 0; }
-    .viewer-pdf-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
-    .viewer-img-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; overflow: auto; }
-    .viewer-img-wrap img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 12px 48px rgba(0,0,0,0.5); }
-    .viewer-other-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; color: var(--paper); padding: 2rem; text-align: center; }
-    .viewer-other-wrap i { font-size: 5rem; opacity: 0.25; }
-    .viewer-footer { background: var(--ink); border-top: 1px solid rgba(245,240,232,0.08); padding: 0.65rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
-    .viewer-nav-info { font-family: 'Space Mono', monospace; font-size: 0.68rem; color: rgba(245,240,232,0.4); }
-    .viewer-nav-btns { display: flex; gap: 0.4rem; }
+    #page-viewer { background: #1e1e1e; height: 100vh; overflow: hidden; }
+    .viewer-header { background: #3c3c3c; color: #f0f0f0; padding: 0 1rem; height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #555; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+    .viewer-filename { font-family: 'Cabinet Grotesk', sans-serif; font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; color: #f0f0f0; }
+    .viewer-toolbar { display: flex; align-items: center; gap: 0.4rem; }
+    .viewer-toolbar button { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #f0f0f0; border-radius: 4px; padding: 0.35rem 0.7rem; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 0.68rem; transition: background .15s; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .viewer-toolbar button:hover { background: rgba(255,255,255,0.18); }
+    .viewer-toolbar .sep { width: 1px; height: 20px; background: rgba(255,255,255,0.15); margin: 0 0.2rem; }
+    .viewer-toolbar .page-info { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: rgba(240,240,240,0.6); white-space: nowrap; }
+    .viewer-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    /* Panel miniaturas */
+    .viewer-thumbs { width: 160px; background: #2b2b2b; border-right: 1px solid #444; overflow-y: auto; padding: 0.75rem 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
+    .viewer-thumbs::-webkit-scrollbar { width: 4px; }
+    .viewer-thumbs::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+    .thumb-item { cursor: pointer; border: 2px solid transparent; border-radius: 4px; overflow: hidden; transition: border-color .15s; background: #1a1a1a; }
+    .thumb-item:hover { border-color: rgba(232,76,14,0.5); }
+    .thumb-item.active { border-color: var(--fire); }
+    .thumb-item canvas { display: block; width: 100%; height: auto; }
+    .thumb-num { font-family: 'Space Mono', monospace; font-size: 0.6rem; text-align: center; color: rgba(240,240,240,0.4); padding: 0.2rem 0; }
+    /* Área principal PDF */
+    .viewer-main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 1.5rem 1rem; gap: 1rem; background: #525659; }
+    .viewer-main::-webkit-scrollbar { width: 6px; }
+    .viewer-main::-webkit-scrollbar-thumb { background: #777; border-radius: 3px; }
+    .pdf-page-wrap { box-shadow: 0 4px 20px rgba(0,0,0,0.5); position: relative; }
+    .pdf-page-wrap canvas { display: block; }
+    /* Imagen */
+    .viewer-img-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; overflow: auto; background: #525659; }
+    .viewer-img-wrap img { max-width: 100%; max-height: 100%; border-radius: 6px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    /* Otro */
+    .viewer-other-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; color: #f0f0f0; padding: 2rem; text-align: center; background: #1e1e1e; }
+    .viewer-other-wrap i { font-size: 5rem; opacity: 0.2; }
+    /* Loading spinner */
+    .viewer-loading { flex: 1; display: flex; align-items: center; justify-content: center; color: rgba(240,240,240,0.5); flex-direction: column; gap: 1rem; background: #525659; }
+    .viewer-loading .spin { width: 32px; height: 32px; border: 3px solid rgba(232,76,14,0.3); border-top-color: var(--fire); border-radius: 50%; animation: spin .7s linear infinite; }
   </style>
 </head>
 <body>
@@ -553,29 +574,29 @@
 <div id="page-viewer" class="page" style="flex-direction:column;min-height:100vh">
   <header class="viewer-header">
     <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1">
-      <button class="btn-ghost-dark" id="viewer-back-btn" onclick="closeViewer()" style="padding:0.4rem 0.75rem;flex-shrink:0"><i class="bi bi-arrow-left"></i> <span class="hide-mob">Volver</span></button>
-      <div style="display:flex;align-items:center;gap:0.6rem;min-width:0">
-        <i id="viewer-type-icon" class="bi bi-file-earmark-fill" style="color:var(--fire);flex-shrink:0"></i>
-        <span class="viewer-filename" id="viewer-filename">Archivo</span>
-      </div>
+      <button class="viewer-toolbar" style="display:contents" onclick="closeViewer()">
+        <button style="background:rgba(232,76,14,0.15);border-color:rgba(232,76,14,0.4);color:#f0f0f0;padding:0.35rem 0.8rem">
+          <i class="bi bi-arrow-left"></i> Volver
+        </button>
+      </button>
+      <i id="viewer-type-icon" class="bi bi-file-earmark-pdf-fill" style="color:var(--fire);flex-shrink:0;font-size:1rem"></i>
+      <span class="viewer-filename" id="viewer-filename">Archivo</span>
     </div>
-    <div style="display:flex;gap:0.5rem;flex-shrink:0;align-items:center">
-      <span id="viewer-unit-tag" style="font-family:'Space Mono',monospace;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;padding:0.2rem 0.6rem;border-radius:4px;background:rgba(245,240,232,0.08);color:rgba(245,240,232,0.45)" class="hide-mob"></span>
-      <button class="btn-ghost-dark" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> <span class="hide-mob">Descargar</span></button>
+    <div class="viewer-toolbar">
+      <button onclick="zoomViewer(-0.25)"><i class="bi bi-zoom-out"></i></button>
+      <span class="page-info" id="viewer-zoom-label">100%</span>
+      <button onclick="zoomViewer(+0.25)"><i class="bi bi-zoom-in"></i></button>
+      <div class="sep"></div>
+      <button onclick="prevPage()"><i class="bi bi-chevron-up"></i></button>
+      <span class="page-info" id="viewer-page-label">— / —</span>
+      <button onclick="nextPage()"><i class="bi bi-chevron-down"></i></button>
+      <div class="sep"></div>
+      <button onclick="downloadCurrentFile()"><i class="bi bi-download"></i> <span class="hide-mob">Descargar</span></button>
     </div>
   </header>
-
   <div class="viewer-body" id="viewer-body">
-    <!-- contenido dinámico -->
+    <div class="viewer-loading"><div class="spin"></div><span>Cargando…</span></div>
   </div>
-
-  <footer class="viewer-footer">
-    <span class="viewer-nav-info" id="viewer-nav-info"></span>
-    <div class="viewer-nav-btns">
-      <button class="btn-ghost-dark" onclick="navigateViewer(-1)" title="Anterior (←)" style="padding:0.4rem 0.8rem"><i class="bi bi-chevron-left"></i></button>
-      <button class="btn-ghost-dark" onclick="navigateViewer(1)"  title="Siguiente (→)" style="padding:0.4rem 0.8rem"><i class="bi bi-chevron-right"></i></button>
-    </div>
-  </footer>
 </div>
 
 <!-- ════ MODAL ADD/EDIT ════ -->
@@ -1465,47 +1486,227 @@ function renderPublicUnitTable() {
 // ═══════════════════════════════
 //  PÁGINA VISOR DE ARCHIVO
 // ═══════════════════════════════
-let viewerItems   = [];
-let viewerIndex   = 0;
-let viewerOrigin  = null;
+// ═══════════════════════════════
+//  VISOR DE ARCHIVO (PDF.js)
+// ═══════════════════════════════
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-/* Abre archivo en pestaña nueva — desde página de Archivos */
+let viewerOrigin   = null;   // 'files' | 'unit'
+let viewerFile     = null;   // { fileName, fileContent, type, ... }
+let pdfDoc         = null;
+let pdfCurrentPage = 1;
+let pdfZoom        = 1.0;
+let pdfRendering   = false;
+
+/* ── Entrada desde página Archivos ── */
 function openPreviewModal(idx) {
   const f = filesPageItems[idx];
-  if (f) openFileInTab(f.fileContent, f.fileName);
+  if (f) { viewerOrigin = 'files'; _launchViewer(f); }
 }
 
-/* Abre archivo en pestaña nueva — desde tabla de unidad */
+/* ── Entrada desde tabla de unidad ── */
 function viewFile(bid, unitId) {
   const arr = allRecords[unitId] || [];
   const rec = arr.find(r => r.__backendId === bid);
   if (!rec?.file_content) return;
-  openFileInTab(rec.file_content, rec.file_name);
+  const u = UNITS.find(u => u.id === unitId);
+  viewerOrigin = 'unit';
+  _launchViewer({
+    fileName:    rec.file_name,
+    fileContent: rec.file_content,
+    ownerName:   rec.name,
+    unitLabel:   u?.label || unitId,
+    type:        getFileType(rec.file_name, rec.file_content),
+  });
 }
 
-/* Abre el dataURL en una pestaña nueva del navegador */
-function openFileInTab(dataUrl, fileName) {
-  // Convertir dataURL a Blob y abrir como URL de objeto
-  try {
-    const [meta, b64] = dataUrl.split(',');
-    const mime = meta.match(/:(.*?);/)[1];
-    const bytes = atob(b64);
-    const arr = new Uint8Array(bytes.length);
-    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-    const blob = new Blob([arr], { type: mime });
-    const url  = URL.createObjectURL(blob);
-    const tab  = window.open(url, '_blank');
-    // Si el navegador bloquea la pestaña, hacer descarga directa
-    if (!tab) {
-      const a = document.createElement('a');
-      a.href = url; a.download = fileName || 'archivo'; a.click();
+function _launchViewer(f) {
+  viewerFile     = f;
+  pdfDoc         = null;
+  pdfCurrentPage = 1;
+  pdfZoom        = 1.0;
+
+  // Actualizar header
+  document.getElementById('viewer-filename').textContent = f.fileName;
+  const iconEl = document.getElementById('viewer-type-icon');
+  if      (f.type === 'pdf')   { iconEl.className = 'bi bi-file-earmark-pdf-fill'; iconEl.style.color = '#e84c0e'; }
+  else if (f.type === 'image') { iconEl.className = 'bi bi-image-fill';            iconEl.style.color = '#1a6b45'; }
+  else                         { iconEl.className = 'bi bi-file-earmark-fill';     iconEl.style.color = '#1a3a6b'; }
+
+  // Ocultar controles de PDF si no es PDF
+  const pdfCtrls = document.querySelectorAll('.pdf-only');
+  pdfCtrls.forEach(el => el.style.display = f.type === 'pdf' ? '' : 'none');
+
+  showPage('page-viewer');
+  _renderViewer();
+}
+
+async function _renderViewer() {
+  const body = document.getElementById('viewer-body');
+  const f = viewerFile;
+  if (!f) return;
+
+  if (f.type === 'pdf') {
+    // Mostrar loading
+    body.innerHTML = '<div class="viewer-loading"><div class="spin"></div><span style="font-family:Space Mono,monospace;font-size:0.75rem;color:rgba(240,240,240,0.5)">Cargando PDF…</span></div>';
+
+    try {
+      // Convertir base64 a Uint8Array
+      const b64  = f.fileContent.split(',')[1];
+      const raw  = atob(b64);
+      const data = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) data[i] = raw.charCodeAt(i);
+
+      pdfDoc = await pdfjsLib.getDocument({ data }).promise;
+      document.getElementById('viewer-zoom-label').textContent = Math.round(pdfZoom * 100) + '%';
+
+      // Construir layout: miniaturas izquierda + área principal derecha
+      body.innerHTML = `
+        <div class="viewer-thumbs" id="pdf-thumbs"></div>
+        <div class="viewer-main"  id="pdf-main"></div>`;
+
+      await _renderAllPages();
+      _scrollToPage(pdfCurrentPage);
+    } catch(e) {
+      body.innerHTML = `<div class="viewer-other-wrap"><i class="bi bi-exclamation-triangle"></i><div><div style="font-size:1.1rem;font-weight:700;margin-bottom:0.5rem">Error al cargar el PDF</div><div style="opacity:0.5;font-size:0.82rem">${esc(e.message)}</div><button class="btn-fire" style="margin-top:1rem" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> Descargar</button></div></div>`;
     }
-    // Limpiar la URL después de un momento
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } catch(e) {
-    // Fallback: abrir dataURL directo
-    window.open(dataUrl, '_blank');
+
+  } else if (f.type === 'image') {
+    body.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'viewer-img-wrap';
+    const img = document.createElement('img');
+    img.src = f.fileContent;
+    img.alt = f.fileName;
+    wrap.appendChild(img);
+    body.appendChild(wrap);
+    document.getElementById('viewer-page-label').textContent = '—';
+    document.getElementById('viewer-zoom-label').textContent = '—';
+
+  } else {
+    body.innerHTML = `<div class="viewer-other-wrap">
+      <i class="bi bi-file-earmark-fill"></i>
+      <div>
+        <div style="font-size:1.3rem;font-weight:700;margin-bottom:0.5rem">${esc(f.fileName)}</div>
+        <div style="opacity:0.45;font-size:0.82rem;margin-bottom:1.5rem">Vista previa no disponible para este formato</div>
+        <button class="btn-fire" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> Descargar</button>
+      </div></div>`;
+    document.getElementById('viewer-page-label').textContent = '—';
+    document.getElementById('viewer-zoom-label').textContent = '—';
   }
+}
+
+async function _renderAllPages() {
+  if (!pdfDoc) return;
+  const thumbsEl = document.getElementById('pdf-thumbs');
+  const mainEl   = document.getElementById('pdf-main');
+  if (!thumbsEl || !mainEl) return;
+
+  thumbsEl.innerHTML = '';
+  mainEl.innerHTML   = '';
+
+  const total = pdfDoc.numPages;
+  document.getElementById('viewer-page-label').textContent = `${pdfCurrentPage} / ${total}`;
+
+  for (let n = 1; n <= total; n++) {
+    const page = await pdfDoc.getPage(n);
+
+    // ── Página principal ──
+    const vp    = page.getViewport({ scale: pdfZoom * _deviceScale() });
+    const wrap  = document.createElement('div');
+    wrap.className   = 'pdf-page-wrap';
+    wrap.id          = `pdf-page-${n}`;
+    wrap.dataset.page = n;
+    const canvas  = document.createElement('canvas');
+    canvas.width  = vp.width;
+    canvas.height = vp.height;
+    canvas.style.width  = (vp.width  / _deviceScale()) + 'px';
+    canvas.style.height = (vp.height / _deviceScale()) + 'px';
+    wrap.appendChild(canvas);
+    mainEl.appendChild(wrap);
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+    // ── Miniatura ──
+    const tvp     = page.getViewport({ scale: 0.25 * _deviceScale() });
+    const tWrap   = document.createElement('div');
+    tWrap.className   = `thumb-item${n === pdfCurrentPage ? ' active' : ''}`;
+    tWrap.id          = `thumb-${n}`;
+    tWrap.onclick     = () => _scrollToPage(n);
+    const tCanvas = document.createElement('canvas');
+    tCanvas.width  = tvp.width;
+    tCanvas.height = tvp.height;
+    tCanvas.style.width  = '100%';
+    tCanvas.style.height = 'auto';
+    tWrap.appendChild(tCanvas);
+    const numEl = document.createElement('div');
+    numEl.className   = 'thumb-num';
+    numEl.textContent = n;
+    tWrap.appendChild(numEl);
+    thumbsEl.appendChild(tWrap);
+    await page.render({ canvasContext: tCanvas.getContext('2d'), viewport: tvp }).promise;
+  }
+
+  // Detectar página visible al hacer scroll
+  mainEl.addEventListener('scroll', _onMainScroll, { passive: true });
+}
+
+function _deviceScale() { return window.devicePixelRatio || 1; }
+
+function _scrollToPage(n) {
+  pdfCurrentPage = n;
+  document.getElementById('viewer-page-label').textContent = `${n} / ${pdfDoc?.numPages || '—'}`;
+  // Scroll en área principal
+  const el = document.getElementById(`pdf-page-${n}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Activar miniatura
+  document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
+  const th = document.getElementById(`thumb-${n}`);
+  if (th) { th.classList.add('active'); th.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+
+function _onMainScroll() {
+  const mainEl = document.getElementById('pdf-main');
+  if (!mainEl || !pdfDoc) return;
+  const scrollTop = mainEl.scrollTop + mainEl.clientHeight / 2;
+  const wraps = mainEl.querySelectorAll('.pdf-page-wrap');
+  let closest = 1, minDist = Infinity;
+  wraps.forEach(w => {
+    const dist = Math.abs(w.offsetTop + w.offsetHeight / 2 - scrollTop);
+    if (dist < minDist) { minDist = dist; closest = parseInt(w.dataset.page); }
+  });
+  if (closest !== pdfCurrentPage) {
+    pdfCurrentPage = closest;
+    document.getElementById('viewer-page-label').textContent = `${pdfCurrentPage} / ${pdfDoc.numPages}`;
+    document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
+    const th = document.getElementById(`thumb-${pdfCurrentPage}`);
+    if (th) { th.classList.add('active'); th.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  }
+}
+
+function prevPage() { if (pdfCurrentPage > 1) _scrollToPage(pdfCurrentPage - 1); }
+function nextPage() { if (pdfDoc && pdfCurrentPage < pdfDoc.numPages) _scrollToPage(pdfCurrentPage + 1); }
+
+async function zoomViewer(delta) {
+  if (!pdfDoc) return;
+  pdfZoom = Math.max(0.5, Math.min(3.0, pdfZoom + delta));
+  document.getElementById('viewer-zoom-label').textContent = Math.round(pdfZoom * 100) + '%';
+  const saved = pdfCurrentPage;
+  await _renderAllPages();
+  _scrollToPage(saved);
+}
+
+function closeViewer() {
+  if (viewerOrigin === 'files') showPage('page-files');
+  else showPage('page-detail');
+  pdfDoc = null;
+}
+
+function downloadCurrentFile() {
+  const f = viewerFile;
+  if (!f) return;
+  const a = document.createElement('a');
+  a.href = f.fileContent; a.download = f.fileName; a.click();
 }
 
 // Init
