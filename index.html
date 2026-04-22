@@ -189,6 +189,38 @@
       .login-left-title { font-size: 2rem; }
       .hide-mob { display: none !important; }
     }
+
+    /* ── PÁGINA ARCHIVOS ── */
+    .files-filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+    .filter-chip { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.4rem 0.9rem; border-radius: 20px; border: 1.5px solid var(--rule-h); background: var(--cream); color: var(--muted); cursor: pointer; transition: all .15s; }
+    .filter-chip:hover { border-color: var(--ink); color: var(--ink); }
+    .filter-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .file-card { background: var(--cream); border: 1.5px solid var(--rule-h); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow .2s, transform .2s, border-color .2s; display: flex; flex-direction: column; }
+    .file-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.1); transform: translateY(-2px); border-color: var(--ink); }
+    .file-card-preview { height: 130px; background: var(--paper2); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; flex-shrink: 0; }
+    .file-card-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .file-card-preview .file-type-icon { font-size: 2.8rem; opacity: 0.35; }
+    .file-card-preview .file-type-badge { position: absolute; top: 8px; right: 8px; font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--ink); color: var(--paper); }
+    .file-card-body { padding: 0.9rem; flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
+    .file-card-name { font-weight: 700; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-card-meta { font-size: 0.72rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+    .file-card-unit { display: inline-block; font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.15rem 0.45rem; border-radius: 4px; color: var(--cobalt); background: rgba(26,58,107,0.1); margin-top: auto; padding-top: 0.5rem; }
+    .file-card-owner { font-size: 0.7rem; color: var(--muted); }
+
+    /* Modal vista previa fullscreen */
+    .preview-modal { display: none; position: fixed; inset: 0; background: rgba(13,13,13,0.92); backdrop-filter: blur(12px); z-index: 2000; flex-direction: column; }
+    .preview-modal.active { display: flex; }
+    .preview-modal-header { background: var(--ink); color: var(--paper); padding: 0.85rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 2px solid var(--fire); flex-shrink: 0; }
+    .preview-modal-title { font-family: 'Clash Display', sans-serif; font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .preview-modal-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .preview-modal-body img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+    .preview-modal-body embed { width: 100%; height: 100%; min-height: 70vh; border: none; border-radius: 8px; }
+    .preview-modal-body .preview-download { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; color: var(--paper); }
+    .preview-modal-body .preview-download i { font-size: 4rem; opacity: 0.4; }
+    .preview-modal-footer { background: rgba(13,13,13,0.6); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
+    .preview-nav-info { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: rgba(245,240,232,0.5); }
+    .preview-nav-btns { display: flex; gap: 0.5rem; }
   </style>
 </head>
 <body>
@@ -404,7 +436,10 @@
         <div class="section-tag">Panel principal</div>
         <div class="section-title">Unidades de Gestión</div>
       </div>
-      <button class="btn-outline" onclick="exportMainCSV()"><i class="bi bi-download"></i> <span class="hide-mob">Exportar CSV</span></button>
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+        <button id="btn-files-page" class="btn-outline" onclick="goToFiles()" style="display:none"><i class="bi bi-folder2-open"></i> <span class="hide-mob">Archivos</span></button>
+        <button class="btn-outline" onclick="exportMainCSV()"><i class="bi bi-download"></i> <span class="hide-mob">Exportar CSV</span></button>
+      </div>
     </div>
     <div class="stats-row">
       <div class="stats-cell"><div class="stats-num" id="stat-total">0</div><div class="stats-lbl">Total Registros</div></div>
@@ -460,6 +495,77 @@
       </div>
       <div id="unit-empty" class="empty-state" style="display:none"><i class="bi bi-inbox empty-icon"></i><div class="empty-title">Sin registros</div><div style="font-size:0.82rem">Agrega el primer registro con el botón de arriba.</div></div>
       <div id="unit-no-results" class="empty-state" style="display:none"><i class="bi bi-search empty-icon"></i><div class="empty-title">Sin resultados</div><div style="font-size:0.82rem">Prueba con otros términos de búsqueda.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PÁGINA ARCHIVOS (Admin) ════ -->
+<div id="page-files" class="page" style="flex-direction:column;min-height:100vh">
+  <header class="app-header">
+    <div style="display:flex;align-items:center;gap:0.75rem">
+      <button class="btn-ghost-dark" onclick="goToMain()" style="padding:0.45rem 0.75rem"><i class="bi bi-arrow-left"></i></button>
+      <div class="topbar-brand"><div class="brand-dot"></div>Archivos</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.75rem">
+      <span id="files-badge" style="font-family:'Space Mono',monospace;font-size:0.65rem;color:rgba(245,240,232,0.45)"></span>
+      <button class="btn-ghost-dark" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> <span class="hide-mob">Salir</span></button>
+    </div>
+  </header>
+  <div class="app-content">
+    <div class="section-header">
+      <div>
+        <div class="section-tag">Administrador</div>
+        <div class="section-title">Archivos Subidos</div>
+      </div>
+    </div>
+
+    <!-- BARRA FILTROS -->
+    <div class="files-filter-bar">
+      <div class="search-wrap" style="flex:1;min-width:200px;max-width:320px">
+        <i class="bi bi-search search-icon"></i>
+        <input id="files-search" type="text" class="field-input" placeholder="Buscar archivo, nombre, unidad…" oninput="renderFilesPage()" style="padding-left:2.2rem">
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="filter-chip active" data-ftype="all" onclick="setFileFilter(this,'all')">Todos</button>
+        <button class="filter-chip" data-ftype="pdf" onclick="setFileFilter(this,'pdf')"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+        <button class="filter-chip" data-ftype="image" onclick="setFileFilter(this,'image')"><i class="bi bi-image"></i> Imágenes</button>
+        <button class="filter-chip" data-ftype="other" onclick="setFileFilter(this,'other')"><i class="bi bi-file-earmark"></i> Otros</button>
+      </div>
+    </div>
+
+    <!-- GRID DE ARCHIVOS -->
+    <div id="files-grid" class="files-grid"></div>
+    <div id="files-empty" class="empty-state" style="display:none">
+      <i class="bi bi-folder2-open empty-icon"></i>
+      <div class="empty-title">Sin archivos</div>
+      <div style="font-size:0.82rem">Aún no se han subido archivos en ninguna unidad.</div>
+    </div>
+    <div id="files-no-results" class="empty-state" style="display:none">
+      <i class="bi bi-search empty-icon"></i>
+      <div class="empty-title">Sin resultados</div>
+      <div style="font-size:0.82rem">Prueba con otros términos o filtros.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL VISTA PREVIA FULLSCREEN ════ -->
+<div id="preview-modal" class="preview-modal">
+  <div class="preview-modal-header">
+    <div style="display:flex;align-items:center;gap:0.75rem;min-width:0">
+      <button class="btn-ghost-dark" onclick="closePreviewModal()" style="padding:0.4rem 0.75rem;flex-shrink:0"><i class="bi bi-arrow-left"></i></button>
+      <span class="preview-modal-title" id="preview-title">Archivo</span>
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-shrink:0">
+      <button class="btn-ghost-dark" id="preview-download-btn" onclick="downloadPreviewFile()"><i class="bi bi-download"></i> <span class="hide-mob">Descargar</span></button>
+      <button class="btn-icon-sm" onclick="closePreviewModal()" style="color:rgba(245,240,232,0.5);border-color:rgba(245,240,232,0.15)"><i class="bi bi-x-lg" style="font-size:0.8rem"></i></button>
+    </div>
+  </div>
+  <div class="preview-modal-body" id="preview-body"></div>
+  <div class="preview-modal-footer">
+    <span class="preview-nav-info" id="preview-nav-info"></span>
+    <div class="preview-nav-btns">
+      <button class="btn-ghost-dark" onclick="navigatePreview(-1)" style="padding:0.4rem 0.8rem"><i class="bi bi-chevron-left"></i></button>
+      <button class="btn-ghost-dark" onclick="navigatePreview(1)"  style="padding:0.4rem 0.8rem"><i class="bi bi-chevron-right"></i></button>
     </div>
   </div>
 </div>
@@ -868,6 +974,10 @@ async function setupSession(username, displayName, role) {
 
   document.getElementById('stat-role-icon').textContent  = role === 'admin' ? '👑' : '👁';
   document.getElementById('stat-role-label').textContent = role === 'admin' ? 'Administrador' : 'Visualizador';
+
+  // Mostrar botón Archivos solo para admin
+  const btnFiles = document.getElementById('btn-files-page');
+  if (btnFiles) btnFiles.style.display = role === 'admin' ? 'inline-flex' : 'none';
 
   buildUnitsGrid('units-grid', true);
 
@@ -1342,6 +1452,191 @@ function renderPublicUnitTable() {
       <td class="td-date">${date}</td>
     </tr>`;
   }).join('');
+}
+
+// ═══════════════════════════════
+//  PÁGINA ARCHIVOS
+// ═══════════════════════════════
+let currentFileFilter = 'all';
+let filesPageItems = [];     // array plano de todos los archivos
+let previewIndex = 0;        // índice actual en el array filtrado para navegación
+
+function goToFiles() {
+  showPage('page-files');
+  renderFilesPage();
+}
+
+function setFileFilter(chip, type) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  currentFileFilter = type;
+  renderFilesPage();
+}
+
+function getFileType(fileName, dataUrl) {
+  if (!fileName) return 'other';
+  const ext = fileName.split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext) || (dataUrl && dataUrl.startsWith('data:image/'))) return 'image';
+  if (ext === 'pdf' || (dataUrl && dataUrl.startsWith('data:application/pdf'))) return 'pdf';
+  return 'other';
+}
+
+function getFileIcon(type) {
+  if (type === 'pdf')   return 'bi-file-earmark-pdf-fill';
+  if (type === 'image') return 'bi-image-fill';
+  return 'bi-file-earmark-fill';
+}
+
+function getFileColor(type) {
+  if (type === 'pdf')   return 'var(--fire)';
+  if (type === 'image') return 'var(--jade)';
+  return 'var(--cobalt)';
+}
+
+function collectAllFiles() {
+  const items = [];
+  UNITS.forEach(u => {
+    (allRecords[u.id] || []).forEach(rec => {
+      if (rec.file_name && rec.file_content) {
+        items.push({
+          bid:         rec.__backendId,
+          unitId:      u.id,
+          unitLabel:   u.label,
+          unitColor:   u.color,
+          fileName:    rec.file_name,
+          fileContent: rec.file_content,
+          ownerName:   rec.name,
+          ownerEmail:  rec.email,
+          date:        rec.created_at,
+          type:        getFileType(rec.file_name, rec.file_content),
+        });
+      }
+    });
+  });
+  return items;
+}
+
+function renderFilesPage() {
+  const allFiles = collectAllFiles();
+  const q = (document.getElementById('files-search')?.value || '').toLowerCase();
+  const gridEl   = document.getElementById('files-grid');
+  const emptyEl  = document.getElementById('files-empty');
+  const noResEl  = document.getElementById('files-no-results');
+  const badgeEl  = document.getElementById('files-badge');
+
+  // Filtrar
+  let filtered = allFiles.filter(f => {
+    const matchType = currentFileFilter === 'all' || f.type === currentFileFilter;
+    const matchQ    = !q || `${f.fileName} ${f.ownerName} ${f.unitLabel}`.toLowerCase().includes(q);
+    return matchType && matchQ;
+  });
+
+  filesPageItems = filtered; // guardar para navegación
+
+  badgeEl.textContent = `${allFiles.length} archivo${allFiles.length !== 1 ? 's' : ''} en total`;
+
+  if (allFiles.length === 0) {
+    gridEl.innerHTML = ''; emptyEl.style.display = ''; noResEl.style.display = 'none'; return;
+  }
+  emptyEl.style.display = 'none';
+  if (filtered.length === 0) {
+    gridEl.innerHTML = ''; noResEl.style.display = ''; return;
+  }
+  noResEl.style.display = 'none';
+
+  gridEl.innerHTML = filtered.map((f, i) => {
+    const date = f.date ? new Date(f.date).toLocaleDateString('es-ES') : '—';
+    const ext  = f.fileName.split('.').pop().toUpperCase().slice(0, 5);
+    let previewHtml = '';
+    if (f.type === 'image') {
+      previewHtml = `<img src="${esc(f.fileContent)}" loading="lazy" alt="${esc(f.fileName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <i class="bi ${getFileIcon(f.type)} file-type-icon" style="display:none;color:${getFileColor(f.type)}"></i>`;
+    } else {
+      previewHtml = `<i class="bi ${getFileIcon(f.type)} file-type-icon" style="color:${getFileColor(f.type)}"></i>`;
+    }
+    return `<div class="file-card" onclick="openPreviewModal(${i})" title="${esc(f.fileName)}">
+      <div class="file-card-preview">
+        ${previewHtml}
+        <span class="file-type-badge">${esc(ext)}</span>
+      </div>
+      <div class="file-card-body">
+        <div class="file-card-name">${esc(f.fileName)}</div>
+        <div class="file-card-owner"><i class="bi bi-person" style="font-size:0.7rem"></i> ${esc(f.ownerName)}</div>
+        <div class="file-card-meta">${date}</div>
+        <span class="file-card-unit" style="background:${f.unitColor}18;color:${f.unitColor}">${esc(f.unitLabel)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL VISTA PREVIA ──
+function openPreviewModal(idx) {
+  previewIndex = idx;
+  renderPreview();
+  document.getElementById('preview-modal').classList.add('active');
+  document.addEventListener('keydown', previewKeyHandler);
+}
+
+function closePreviewModal() {
+  document.getElementById('preview-modal').classList.remove('active');
+  document.removeEventListener('keydown', previewKeyHandler);
+}
+
+function previewKeyHandler(e) {
+  if (e.key === 'ArrowLeft')  navigatePreview(-1);
+  if (e.key === 'ArrowRight') navigatePreview(1);
+  if (e.key === 'Escape')     closePreviewModal();
+}
+
+function navigatePreview(dir) {
+  const n = filesPageItems.length;
+  if (!n) return;
+  previewIndex = (previewIndex + dir + n) % n;
+  renderPreview();
+}
+
+function renderPreview() {
+  const f = filesPageItems[previewIndex];
+  if (!f) return;
+  document.getElementById('preview-title').textContent = f.fileName;
+  document.getElementById('preview-nav-info').textContent =
+    `${previewIndex + 1} / ${filesPageItems.length}  ·  ${f.unitLabel}  ·  ${f.ownerName}`;
+
+  const body = document.getElementById('preview-body');
+  body.innerHTML = '';
+
+  if (f.type === 'image') {
+    const img = document.createElement('img');
+    img.src = f.fileContent;
+    img.alt = f.fileName;
+    body.appendChild(img);
+  } else if (f.type === 'pdf') {
+    const embed = document.createElement('embed');
+    embed.src   = f.fileContent;
+    embed.type  = 'application/pdf';
+    embed.style.cssText = 'width:100%;height:80vh;min-height:400px;border:none;border-radius:8px';
+    body.appendChild(embed);
+  } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'preview-download';
+    wrap.innerHTML = `
+      <i class="bi bi-file-earmark-fill" style="font-size:5rem;color:var(--paper);opacity:0.3"></i>
+      <div style="text-align:center">
+        <div style="font-family:'Clash Display',sans-serif;font-size:1.25rem;font-weight:700;color:var(--paper);margin-bottom:0.5rem">${esc(f.fileName)}</div>
+        <div style="font-size:0.82rem;color:rgba(245,240,232,0.45);margin-bottom:1.5rem">Vista previa no disponible para este tipo de archivo</div>
+        <button class="btn-fire" onclick="downloadPreviewFile()"><i class="bi bi-download"></i> Descargar archivo</button>
+      </div>`;
+    body.appendChild(wrap);
+  }
+}
+
+function downloadPreviewFile() {
+  const f = filesPageItems[previewIndex];
+  if (!f) return;
+  const a = document.createElement('a');
+  a.href     = f.fileContent;
+  a.download = f.fileName;
+  a.click();
 }
 
 // Init
