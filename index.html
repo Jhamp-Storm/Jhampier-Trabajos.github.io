@@ -1465,131 +1465,47 @@ function renderPublicUnitTable() {
 // ═══════════════════════════════
 //  PÁGINA VISOR DE ARCHIVO
 // ═══════════════════════════════
-let viewerItems   = [];   // lista filtrada actual (para navegar)
-let viewerIndex   = 0;    // posición actual
-let viewerOrigin  = null; // 'files' | 'unit' | 'public' — a dónde volver
+let viewerItems   = [];
+let viewerIndex   = 0;
+let viewerOrigin  = null;
 
-/* Abre el visor desde la página de archivos del admin */
+/* Abre archivo en pestaña nueva — desde página de Archivos */
 function openPreviewModal(idx) {
-  viewerItems  = filesPageItems.slice();  // copia del array filtrado actual
-  viewerIndex  = idx;
-  viewerOrigin = 'files';
-  _showViewer();
+  const f = filesPageItems[idx];
+  if (f) openFileInTab(f.fileContent, f.fileName);
 }
 
-/* Abre el visor desde la tabla de unidad (admin o viewer logueado) */
+/* Abre archivo en pestaña nueva — desde tabla de unidad */
 function viewFile(bid, unitId) {
   const arr = allRecords[unitId] || [];
   const rec = arr.find(r => r.__backendId === bid);
   if (!rec?.file_content) return;
-  const u = UNITS.find(u => u.id === unitId);
-  // Construir lista de todos los archivos de esa unidad para navegar entre ellos
-  viewerItems = arr
-    .filter(r => r.file_name && r.file_content)
-    .map(r => ({
-      bid:         r.__backendId,
-      unitId,
-      unitLabel:   u?.label || unitId,
-      unitColor:   u?.color || 'var(--fire)',
-      fileName:    r.file_name,
-      fileContent: r.file_content,
-      ownerName:   r.name,
-      date:        r.created_at,
-      type:        getFileType(r.file_name, r.file_content),
-    }));
-  viewerIndex  = viewerItems.findIndex(f => f.bid === bid);
-  if (viewerIndex < 0) viewerIndex = 0;
-  viewerOrigin = 'unit';
-  _showViewer();
+  openFileInTab(rec.file_content, rec.file_name);
 }
 
-function _showViewer() {
-  _renderViewerContent();
-  showPage('page-viewer');
-  document.addEventListener('keydown', _viewerKeyHandler);
-}
-
-function closeViewer() {
-  document.removeEventListener('keydown', _viewerKeyHandler);
-  if (viewerOrigin === 'files') {
-    showPage('page-files');
-  } else {
-    showPage('page-detail');
+/* Abre el dataURL en una pestaña nueva del navegador */
+function openFileInTab(dataUrl, fileName) {
+  // Convertir dataURL a Blob y abrir como URL de objeto
+  try {
+    const [meta, b64] = dataUrl.split(',');
+    const mime = meta.match(/:(.*?);/)[1];
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime });
+    const url  = URL.createObjectURL(blob);
+    const tab  = window.open(url, '_blank');
+    // Si el navegador bloquea la pestaña, hacer descarga directa
+    if (!tab) {
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName || 'archivo'; a.click();
+    }
+    // Limpiar la URL después de un momento
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch(e) {
+    // Fallback: abrir dataURL directo
+    window.open(dataUrl, '_blank');
   }
-}
-
-function _viewerKeyHandler(e) {
-  if (e.key === 'ArrowLeft')  navigateViewer(-1);
-  if (e.key === 'ArrowRight') navigateViewer(1);
-  if (e.key === 'Escape')     closeViewer();
-}
-
-function navigateViewer(dir) {
-  const n = viewerItems.length;
-  if (!n) return;
-  viewerIndex = (viewerIndex + dir + n) % n;
-  _renderViewerContent();
-}
-
-function _renderViewerContent() {
-  const f = viewerItems[viewerIndex];
-  if (!f) return;
-
-  // Header
-  document.getElementById('viewer-filename').textContent = f.fileName;
-  document.getElementById('viewer-unit-tag').textContent = f.unitLabel || '';
-  document.getElementById('viewer-nav-info').textContent =
-    `${viewerIndex + 1} / ${viewerItems.length}  ·  ${f.ownerName || ''}`;
-
-  // Ícono por tipo
-  const iconEl = document.getElementById('viewer-type-icon');
-  if (f.type === 'pdf')        { iconEl.className = 'bi bi-file-earmark-pdf-fill'; iconEl.style.color = 'var(--fire)'; }
-  else if (f.type === 'image') { iconEl.className = 'bi bi-image-fill';            iconEl.style.color = 'var(--jade)'; }
-  else                         { iconEl.className = 'bi bi-file-earmark-fill';     iconEl.style.color = 'var(--cobalt)'; }
-
-  // Cuerpo
-  const body = document.getElementById('viewer-body');
-  body.innerHTML = '';
-
-  if (f.type === 'pdf') {
-    const wrap = document.createElement('div');
-    wrap.className = 'viewer-pdf-wrap';
-    const iframe = document.createElement('iframe');
-    iframe.src   = f.fileContent;
-    iframe.title = f.fileName;
-    wrap.appendChild(iframe);
-    body.appendChild(wrap);
-
-  } else if (f.type === 'image') {
-    const wrap = document.createElement('div');
-    wrap.className = 'viewer-img-wrap';
-    const img = document.createElement('img');
-    img.src = f.fileContent;
-    img.alt = f.fileName;
-    wrap.appendChild(img);
-    body.appendChild(wrap);
-
-  } else {
-    const wrap = document.createElement('div');
-    wrap.className = 'viewer-other-wrap';
-    wrap.innerHTML = `
-      <i class="bi bi-file-earmark-fill"></i>
-      <div>
-        <div style="font-family:'Clash Display',sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:0.5rem">${esc(f.fileName)}</div>
-        <div style="font-size:0.85rem;opacity:0.45;margin-bottom:1.5rem">Vista previa no disponible para este formato</div>
-        <button class="btn-fire" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> Descargar archivo</button>
-      </div>`;
-    body.appendChild(wrap);
-  }
-}
-
-function downloadCurrentFile() {
-  const f = viewerItems[viewerIndex];
-  if (!f) return;
-  const a = document.createElement('a');
-  a.href     = f.fileContent;
-  a.download = f.fileName;
-  a.click();
 }
 
 // Init
