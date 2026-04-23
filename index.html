@@ -4,245 +4,1181 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DataVault — Panel de Gestión</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
-      --ink:      #0d0d0d;
-      --ink2:     #1a1a1a;
-      --paper:    #f5f0e8;
-      --paper2:   #ede8dc;
-      --cream:    #faf8f3;
-      --rule:     rgba(13,13,13,0.1);
-      --rule-h:   rgba(13,13,13,0.2);
-      --fire:     #e84c0e;
-      --fire2:    #ff6b35;
-      --jade:     #1a6b45;
-      --jade-l:   #d4edda;
-      --cobalt:   #1a3a6b;
-      --gold:     #c8960c;
-      --muted:    #7a7060;
-      --r:        6px;
+      --void:       #07080a;
+      --deep:       #0d0f14;
+      --surface:    #13161d;
+      --panel:      #191c25;
+      --card:       #1e2230;
+      --border:     rgba(255,255,255,0.07);
+      --border-h:   rgba(255,255,255,0.14);
+      --border-glow:rgba(99,157,255,0.35);
+      --text:       #e8ecf4;
+      --text-2:     #8b93a8;
+      --text-3:     #505869;
+      --accent:     #4f8eff;
+      --accent-2:   #7cb0ff;
+      --accent-glow:rgba(79,142,255,0.18);
+      --ember:      #ff5c35;
+      --ember-glow: rgba(255,92,53,0.18);
+      --jade:       #22c78a;
+      --jade-glow:  rgba(34,199,138,0.15);
+      --gold:       #f0b429;
+      --gold-glow:  rgba(240,180,41,0.15);
+      --amethyst:   #a78bfa;
+      --r:          8px;
+      --r-lg:       14px;
     }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Cabinet Grotesk', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; overflow-x: hidden; }
-    h1, h2, h3, h4, .display { font-family: 'Clash Display', sans-serif; }
-    .mono { font-family: 'Space Mono', monospace; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: var(--paper2); }
-    ::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 2px; }
-    .page { display: none; min-height: 100vh; }
-    .page.active { display: flex; flex-direction: column; }
-    .text-fire { color: var(--fire); }
-    .text-muted { color: var(--muted); }
-    .text-jade { color: var(--jade); }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--void);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
     body::before {
       content: '';
       position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-      pointer-events: none; z-index: 9999; opacity: 0.4;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9999; opacity: 0.5;
     }
-    .topbar { background: var(--ink); color: var(--paper); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 2px solid var(--fire); flex-shrink: 0; }
-    .topbar-brand { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.6rem; }
-    .brand-dot { width: 10px; height: 10px; background: var(--fire); border-radius: 50%; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(0.85)} }
-    .btn-fire { background: var(--fire); color: #fff; border: none; font-family: 'Space Mono', monospace; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.6rem 1.4rem; border-radius: var(--r); cursor: pointer; text-transform: uppercase; transition: background .15s, transform .1s; display: inline-flex; align-items: center; gap: 0.4rem; }
-    .btn-fire:hover { background: var(--fire2); transform: translateY(-1px); }
-    .btn-fire:active { transform: translateY(0); }
-    .btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; padding: 0.5rem 1.2rem; border-radius: var(--r); cursor: pointer; text-transform: uppercase; transition: background .15s, color .15s; display: inline-flex; align-items: center; gap: 0.4rem; }
-    .btn-outline:hover { background: var(--ink); color: var(--paper); }
-    .btn-ghost-dark { background: rgba(245,240,232,0.08); color: var(--paper); border: 1px solid rgba(245,240,232,0.15); font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 0.45rem 0.9rem; border-radius: var(--r); cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em; transition: background .15s; display: inline-flex; align-items: center; gap: 0.4rem; }
-    .btn-ghost-dark:hover { background: rgba(245,240,232,0.15); }
-    .btn-icon-sm { width: 32px; height: 32px; background: transparent; border: 1.5px solid var(--rule-h); border-radius: var(--r); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); transition: border-color .15s, color .15s, background .15s; }
-    .btn-icon-sm:hover { border-color: var(--ink); color: var(--ink); background: var(--paper2); }
-    .btn-danger { background: transparent; color: var(--fire); border: 1.5px solid var(--fire); font-family: 'Space Mono', monospace; font-size: 0.7rem; padding: 0.45rem 1rem; border-radius: var(--r); cursor: pointer; text-transform: uppercase; transition: background .15s, color .15s; }
-    .btn-danger:hover { background: var(--fire); color: #fff; }
-    .btn-jade { background: var(--jade); color: #fff; border: none; font-family: 'Space Mono', monospace; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.6rem 1.4rem; border-radius: var(--r); cursor: pointer; text-transform: uppercase; transition: background .15s; display: inline-flex; align-items: center; gap: 0.4rem; }
-    .btn-jade:hover { background: #1d7a4e; }
-    .field-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); display: block; margin-bottom: 0.4rem; }
-    .field-input { width: 100%; background: var(--cream); border: 1.5px solid var(--rule-h); border-radius: var(--r); padding: 0.65rem 0.9rem; font-family: 'Cabinet Grotesk', sans-serif; font-size: 0.9rem; color: var(--ink); transition: border-color .2s; outline: none; }
-    .field-input:focus { border-color: var(--fire); background: #fff; }
-    .field-input::placeholder { color: var(--muted); }
 
-    /* LANDING */
-    .landing-grid { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 56px); }
-    .landing-left { padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--rule); }
-    .landing-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--fire); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
-    .landing-eyebrow::before { content:''; display:block; width:24px; height:2px; background:var(--fire); }
-    .landing-headline { font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 700; line-height: 1.0; letter-spacing: -0.03em; margin-bottom: 1.5rem; }
-    .landing-headline em { font-style: normal; color: var(--fire); }
-    .landing-sub { font-size: 1.05rem; color: var(--muted); line-height: 1.6; max-width: 400px; margin-bottom: 3rem; }
-    .landing-right { background: var(--ink2); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; position: relative; overflow: hidden; }
-    .landing-right::before { content: 'DATAVAULT'; position: absolute; font-family: 'Clash Display', sans-serif; font-size: 9rem; font-weight: 700; color: rgba(245,240,232,0.03); white-space: nowrap; letter-spacing: -0.05em; pointer-events: none; }
-    .stat-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; margin-top: 2rem; width: 100%; }
-    .stat-cell { background: var(--paper); padding: 1.25rem; }
-    .stat-cell-num { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; line-height: 1; margin-bottom: 0.25rem; }
-    .stat-cell-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
-    .feature-list { list-style: none; margin: 0 0 2.5rem; padding: 0; }
-    .feature-list li { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); font-size: 0.9rem; color: var(--muted); }
+    /* Ambient background glow */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -20%;
+      left: -10%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(ellipse, rgba(79,142,255,0.04) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    h1, h2, h3, h4 { font-family: 'DM Serif Display', serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--deep); }
+    ::-webkit-scrollbar-thumb { background: var(--border-h); border-radius: 2px; }
+
+    .page { display: none; min-height: 100vh; position: relative; }
+    .page.active { display: flex; flex-direction: column; }
+
+    /* ── UTILITY TEXT ── */
+    .text-accent  { color: var(--accent); }
+    .text-ember   { color: var(--ember); }
+    .text-jade    { color: var(--jade); }
+    .text-muted   { color: var(--text-2); }
+    .text-gold    { color: var(--gold); }
+
+    /* ═══ BUTTONS ═══ */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 0.6rem 1.3rem;
+      border-radius: var(--r);
+      border: none; cursor: pointer;
+      transition: all .18s cubic-bezier(.4,0,.2,1);
+      position: relative; overflow: hidden;
+    }
+    .btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background .18s;
+    }
+    .btn:hover::after { background: rgba(255,255,255,0.05); }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 0 0 var(--accent-glow);
+    }
+    .btn-primary:hover {
+      background: var(--accent-2);
+      box-shadow: 0 4px 24px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-ember {
+      background: var(--ember);
+      color: #fff;
+      box-shadow: 0 0 0 0 var(--ember-glow);
+    }
+    .btn-ember:hover {
+      box-shadow: 0 4px 24px var(--ember-glow);
+      transform: translateY(-1px);
+      background: #ff7152;
+    }
+
+    .btn-jade {
+      background: var(--jade);
+      color: var(--void);
+      font-weight: 700;
+    }
+    .btn-jade:hover {
+      background: #2de09a;
+      box-shadow: 0 4px 20px var(--jade-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      background: var(--card);
+      color: var(--text);
+      border-color: var(--border-h);
+    }
+
+    .btn-ghost-light {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost-light:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--border-h);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--ember);
+      border: 1px solid rgba(255,92,53,0.3);
+    }
+    .btn-danger:hover {
+      background: var(--ember);
+      color: #fff;
+      border-color: var(--ember);
+    }
+
+    .btn-icon {
+      width: 34px; height: 34px;
+      padding: 0;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: 0.85rem;
+    }
+    .btn-icon:hover {
+      background: var(--card);
+      border-color: var(--border-h);
+      color: var(--text);
+    }
+
+    /* ═══ FORM FIELDS ═══ */
+    .field-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-3);
+      display: block; margin-bottom: 0.45rem;
+    }
+    .field-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0.7rem 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+      outline: none;
+    }
+    .field-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .field-input::placeholder { color: var(--text-3); }
+
+    /* ═══════════════════════════
+       TOPBAR / NAV
+    ═══════════════════════════ */
+    .topbar {
+      background: var(--deep);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      position: relative; z-index: 10;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.2rem;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .brand-mark {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--amethyst));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 16px rgba(79,142,255,0.3);
+    }
+    .brand-dot {
+      width: 7px; height: 7px;
+      background: var(--jade);
+      border-radius: 50%;
+      animation: pulse 2.5s infinite;
+      box-shadow: 0 0 8px var(--jade);
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.7)} }
+
+    .nav-actions { display: flex; align-items: center; gap: 0.5rem; }
+
+    /* ═══════════════════════════
+       LANDING PAGE
+    ═══════════════════════════ */
+    .landing-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      position: relative; z-index: 1;
+    }
+
+    .landing-left {
+      padding: 5rem 4rem;
+      display: flex; flex-direction: column; justify-content: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .eyebrow {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 2rem;
+    }
+    .eyebrow-line {
+      width: 28px; height: 1.5px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .hero-headline {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(3rem, 5.5vw, 5.5rem);
+      font-weight: 400;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.75rem;
+      color: var(--text);
+    }
+    .hero-headline em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--accent), var(--amethyst));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      line-height: 1.7;
+      max-width: 420px;
+      margin-bottom: 3rem;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 0 0 3rem;
+      padding: 0;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .feature-list li {
+      display: flex; align-items: center; gap: 0.9rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+      color: var(--text-2);
+      transition: color .15s;
+    }
     .feature-list li:last-child { border-bottom: none; }
-    .feature-list li i { color: var(--jade); font-size: 1rem; flex-shrink: 0; }
+    .feature-list li:hover { color: var(--text); }
+    .feature-list li i { color: var(--jade); font-size: 0.85rem; flex-shrink: 0; }
 
-    /* LOGIN / REGISTER */
-    #page-login { background: var(--ink); align-items: stretch; flex-direction: row; }
-    .login-left { flex: 1; background: var(--fire); display: flex; flex-direction: column; justify-content: center; padding: 4rem 3rem; position: relative; overflow: hidden; }
-    .login-left::after { content: ''; position: absolute; bottom: -40px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: rgba(0,0,0,0.12); }
-    .login-left-title { font-family: 'Clash Display', sans-serif; font-size: 3rem; font-weight: 700; color: #fff; line-height: 1.0; margin-bottom: 1rem; position: relative; z-index: 1; }
-    .login-left-sub { color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.6; position: relative; z-index: 1; max-width: 280px; }
-    .login-right { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; overflow-y: auto; }
-    .login-card { width: 100%; max-width: 380px; }
-    .login-card-title { font-family: 'Clash Display', sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--paper); margin-bottom: 0.5rem; }
-    .login-card-sub { color: rgba(245,240,232,0.5); font-size: 0.85rem; margin-bottom: 2rem; }
-    .login-field-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(245,240,232,0.45); display: block; margin-bottom: 0.35rem; }
-    .login-field-input { width: 100%; background: rgba(245,240,232,0.06); border: 1.5px solid rgba(245,240,232,0.12); border-radius: var(--r); padding: 0.65rem 0.9rem; font-family: 'Cabinet Grotesk', sans-serif; font-size: 0.9rem; color: var(--paper); transition: border-color .2s; outline: none; }
-    .login-field-input:focus { border-color: var(--fire); }
-    .login-field-input::placeholder { color: rgba(245,240,232,0.3); }
-    .login-error { background: rgba(232,76,14,0.15); border: 1px solid rgba(232,76,14,0.35); border-radius: var(--r); padding: 0.65rem 0.9rem; font-size: 0.82rem; color: var(--fire2); display: none; margin-bottom: 1rem; }
-    .login-error.show { display: block; }
-    .login-success { background: rgba(26,107,69,0.15); border: 1px solid rgba(26,107,69,0.35); border-radius: var(--r); padding: 0.65rem 0.9rem; font-size: 0.82rem; color: #4caf84; display: none; margin-bottom: 1rem; }
-    .login-success.show { display: block; }
-    .tab-switch { display: flex; background: rgba(245,240,232,0.06); border-radius: var(--r); padding: 3px; margin-bottom: 1.75rem; }
-    .tab-btn { flex: 1; padding: 0.55rem; text-align: center; font-family: 'Space Mono', monospace; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border-radius: 4px; transition: background .2s, color .2s; color: rgba(245,240,232,0.4); border: none; background: transparent; }
-    .tab-btn.active { background: var(--fire); color: #fff; }
+    .hero-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 3rem; }
 
-    /* MAIN APP */
-    .app-header { background: var(--ink); color: var(--paper); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 2px solid var(--fire); flex-shrink: 0; }
-    .app-content { flex: 1; overflow-y: auto; padding: 2rem 1.5rem; }
-    .section-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1.5px solid var(--rule-h); }
-    .section-tag { font-family: 'Space Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--fire); margin-bottom: 0.3rem; }
-    .section-title { font-family: 'Clash Display', sans-serif; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
-    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1px; background: var(--rule-h); border: 1.5px solid var(--rule-h); border-radius: var(--r); overflow: hidden; margin-bottom: 2rem; }
-    .stats-cell { background: var(--cream); padding: 1.25rem 1.5rem; }
-    .stats-num { font-family: 'Space Mono', monospace; font-size: 2.25rem; font-weight: 700; line-height: 1; margin-bottom: 0.25rem; }
-    .stats-lbl { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .units-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5px; background: var(--rule-h); border: 1.5px solid var(--rule-h); border-radius: var(--r); overflow: hidden; }
-    .unit-tile { background: var(--cream); padding: 1.75rem 1.5rem; cursor: pointer; position: relative; transition: background .2s; overflow: hidden; }
-    .unit-tile::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--tile-color); transform: scaleX(0); transition: transform .25s ease; transform-origin: left; }
-    .unit-tile:hover { background: #fff; }
-    .unit-tile:hover::after { transform: scaleX(1); }
-    .unit-tile-num { font-family: 'Space Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; }
-    .unit-tile-name { font-family: 'Clash Display', sans-serif; font-size: 1.35rem; font-weight: 700; margin-bottom: 0.25rem; }
-    .unit-tile-count { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.25rem; }
-    .unit-tile-arrow { font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--tile-color); display: flex; align-items: center; gap: 0.35rem; }
-    .public-banner { background: rgba(26,107,69,0.08); border: 1.5px solid rgba(26,107,69,0.2); border-radius: var(--r); padding: 0.75rem 1.25rem; font-size: 0.82rem; color: var(--jade); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem; }
+    /* Stat strip */
+    .stat-strip {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      background: var(--border);
+      gap: 1px;
+      max-width: 420px;
+    }
+    .stat-cell {
+      background: var(--panel);
+      padding: 1.25rem 1.5rem;
+    }
+    .stat-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.2rem;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+      color: var(--text);
+    }
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-3);
+    }
 
-    /* DETAIL */
-    .data-wrap { background: var(--cream); border: 1.5px solid var(--rule-h); border-radius: var(--r); overflow: hidden; }
+    /* Landing right */
+    .landing-right {
+      background: var(--surface);
+      display: flex; flex-direction: column; justify-content: center; align-items: stretch;
+      padding: 3rem 2.5rem;
+      gap: 0.75rem;
+      position: relative; overflow: hidden;
+    }
+    .landing-right::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 300px; height: 300px;
+      background: radial-gradient(ellipse, rgba(79,142,255,0.06), transparent 70%);
+      pointer-events: none;
+    }
+    .landing-right::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 250px; height: 250px;
+      background: radial-gradient(ellipse, rgba(167,139,250,0.06), transparent 70%);
+      pointer-events: none;
+    }
+    .access-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.5rem;
+      position: relative; z-index: 1;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .access-card:hover {
+      border-color: var(--border-h);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .access-card-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-3);
+      margin-bottom: 0.65rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .access-card-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .access-card h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem; font-weight: 400;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .access-card p {
+      font-size: 0.8rem;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+    .access-card.accent-border { border-color: rgba(79,142,255,0.3); }
+    .access-card.ember-border  { border-color: rgba(255,92,53,0.3); }
+    .access-card.jade-border   { border-color: rgba(34,199,138,0.3); }
+
+    /* ═══════════════════════════
+       LOGIN PAGE
+    ═══════════════════════════ */
+    #page-login {
+      background: var(--void);
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .login-left {
+      flex: 1;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 5rem 4rem;
+      position: relative; overflow: hidden;
+    }
+    .login-left::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(ellipse, rgba(79,142,255,0.05), transparent 70%);
+      pointer-events: none;
+    }
+    .login-deco-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.5rem, 4vw, 4rem);
+      font-weight: 400;
+      line-height: 1.1;
+      color: var(--text);
+      margin-bottom: 1rem;
+      position: relative; z-index: 1;
+    }
+    .login-deco-sub {
+      font-size: 0.95rem;
+      color: var(--text-2);
+      line-height: 1.6;
+      max-width: 300px;
+      position: relative; z-index: 1;
+    }
+    .login-deco-badge {
+      margin-top: 3rem;
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.5rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-2);
+      position: relative; z-index: 1;
+    }
+
+    .login-right {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+      overflow-y: auto;
+    }
+
+    .login-card {
+      width: 100%; max-width: 400px;
+    }
+    .login-back-btn {
+      background: transparent; border: none;
+      color: var(--text-3);
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 2rem;
+      padding: 0;
+      display: flex; align-items: center; gap: 0.4rem;
+      transition: color .15s;
+    }
+    .login-back-btn:hover { color: var(--text); }
+
+    .tab-switch {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 2rem;
+    }
+    .tab-btn {
+      flex: 1; padding: 0.6rem;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all .2s;
+      color: var(--text-3);
+      border: none; background: transparent;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+
+    .login-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem; font-weight: 400;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .login-sub {
+      font-size: 0.85rem;
+      color: var(--text-2);
+      margin-bottom: 2rem;
+    }
+
+    .login-field-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-3);
+      display: block; margin-bottom: 0.4rem;
+    }
+    .login-field-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0.7rem 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+      outline: none;
+    }
+    .login-field-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .login-field-input::placeholder { color: var(--text-3); }
+
+    .login-error {
+      background: rgba(255,92,53,0.1);
+      border: 1px solid rgba(255,92,53,0.25);
+      border-radius: var(--r);
+      padding: 0.7rem 1rem;
+      font-size: 0.82rem;
+      color: var(--ember);
+      display: none; margin-bottom: 1rem;
+    }
+    .login-error.show { display: flex; align-items: center; gap: 0.5rem; }
+
+    .login-success {
+      background: rgba(34,199,138,0.1);
+      border: 1px solid rgba(34,199,138,0.25);
+      border-radius: var(--r);
+      padding: 0.7rem 1rem;
+      font-size: 0.82rem;
+      color: var(--jade);
+      display: none; margin-bottom: 1rem;
+    }
+    .login-success.show { display: flex; align-items: center; gap: 0.5rem; }
+
+    /* ═══════════════════════════
+       APP HEADER
+    ═══════════════════════════ */
+    .app-header {
+      background: var(--deep);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      position: relative; z-index: 10; flex-shrink: 0;
+    }
+    .app-header-left { display: flex; align-items: center; gap: 1rem; }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-3);
+    }
+    .breadcrumb-sep { color: var(--text-3); opacity: 0.4; }
+    .breadcrumb-current { color: var(--text-2); }
+
+    /* ═══════════════════════════
+       APP CONTENT
+    ═══════════════════════════ */
+    .app-content { flex: 1; overflow-y: auto; padding: 2.5rem 2rem; }
+
+    .section-header {
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .section-tag::before {
+      content: '';
+      display: block; width: 16px; height: 1.5px;
+      background: var(--accent);
+    }
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.2rem; font-weight: 400;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    /* ═══════════════════════════
+       STATS ROW
+    ═══════════════════════════ */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    .stats-cell {
+      background: var(--panel);
+      padding: 1.5rem;
+      position: relative; overflow: hidden;
+    }
+    .stats-cell::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .stats-cell:hover::before { opacity: 1; }
+    .stats-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.5rem;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+      color: var(--text);
+    }
+    .stats-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-3);
+    }
+
+    /* ═══════════════════════════
+       UNITS GRID
+    ═══════════════════════════ */
+    .units-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .unit-tile {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 2rem;
+      cursor: pointer;
+      position: relative; overflow: hidden;
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+    .unit-tile::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--tile-color);
+      opacity: 0.7;
+    }
+    .unit-tile::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; right: -40px;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: var(--tile-color);
+      opacity: 0.04;
+      transition: opacity .2s, transform .2s;
+    }
+    .unit-tile:hover {
+      border-color: var(--border-h);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .unit-tile:hover::after { opacity: 0.08; transform: scale(1.2); }
+
+    .unit-tile-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-3);
+      margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .unit-tile-num::before {
+      content: '';
+      display: block; width: 10px; height: 10px;
+      border-radius: 3px;
+      background: var(--tile-color);
+    }
+    .unit-tile-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem; font-weight: 400;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .unit-tile-count {
+      font-size: 0.8rem;
+      color: var(--text-2);
+      margin-bottom: 1.75rem;
+    }
+    .unit-tile-arrow {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--tile-color);
+    }
+
+    /* ═══════════════════════════
+       PUBLIC BANNER
+    ═══════════════════════════ */
+    .public-banner {
+      background: rgba(34,199,138,0.07);
+      border: 1px solid rgba(34,199,138,0.2);
+      border-radius: var(--r-lg);
+      padding: 1rem 1.5rem;
+      font-size: 0.85rem;
+      color: var(--jade);
+      margin-bottom: 2rem;
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .public-banner a { color: var(--jade); font-weight: 700; text-decoration: none; }
+    .public-banner a:hover { text-decoration: underline; }
+
+    /* ═══════════════════════════
+       DATA TABLE
+    ═══════════════════════════ */
+    .data-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
     .data-table { width: 100%; border-collapse: collapse; }
-    .data-table thead th { font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 0.85rem 1rem; text-align: left; background: var(--paper2); border-bottom: 1.5px solid var(--rule-h); white-space: nowrap; }
+    .data-table thead th {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-3);
+      padding: 1rem 1.25rem;
+      text-align: left;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
     .data-table thead th:last-child { text-align: right; }
-    .data-table tbody tr { border-bottom: 1px solid var(--rule); transition: background .1s; }
+    .data-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
     .data-table tbody tr:last-child { border-bottom: none; }
-    .data-table tbody tr:hover { background: #fff; }
-    .data-table tbody td { padding: 0.8rem 1rem; font-size: 0.875rem; vertical-align: middle; }
-    .td-name { font-weight: 600; }
-    .td-email { color: var(--muted); font-size: 0.82rem; }
-    .td-dept { font-family: 'Space Mono', monospace; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--cobalt); background: rgba(26,58,107,0.08); padding: 0.2rem 0.55rem; border-radius: 4px; display: inline-block; }
-    .td-file-btn { background: transparent; border: 1px solid var(--rule-h); border-radius: 4px; padding: 0.2rem 0.5rem; font-size: 0.72rem; cursor: pointer; color: var(--muted); transition: border-color .15s, color .15s; display: inline-flex; align-items: center; gap: 0.3rem; }
-    .td-file-btn:hover { border-color: var(--ink); color: var(--ink); }
-    .td-date { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+    .data-table tbody tr:hover { background: var(--card); }
+    .data-table tbody td { padding: 0.9rem 1.25rem; font-size: 0.875rem; vertical-align: middle; }
+
+    .td-name { font-weight: 600; color: var(--text); }
+    .td-email { color: var(--text-2); font-size: 0.82rem; }
+    .td-dept {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--accent);
+      background: rgba(79,142,255,0.1);
+      border: 1px solid rgba(79,142,255,0.2);
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      display: inline-block;
+    }
+    .td-file-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.72rem; cursor: pointer;
+      color: var(--text-2);
+      transition: all .15s;
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .td-file-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+    .td-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-3);
+    }
     .actions-cell { text-align: right; white-space: nowrap; }
-    .empty-state { padding: 4rem 1rem; text-align: center; color: var(--muted); }
-    .empty-icon { font-size: 2.5rem; opacity: .25; display: block; margin-bottom: 0.75rem; }
-    .empty-title { font-family: 'Clash Display', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem; }
+
+    .empty-state {
+      padding: 5rem 1rem;
+      text-align: center;
+      color: var(--text-3);
+    }
+    .empty-icon { font-size: 2.5rem; opacity: .2; display: block; margin-bottom: 1rem; }
+    .empty-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem; font-weight: 400;
+      color: var(--text-2);
+      margin-bottom: 0.4rem;
+    }
+
+    /* Search */
     .search-wrap { position: relative; }
-    .search-wrap .search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 0.85rem; }
-    .search-wrap .field-input { padding-left: 2.2rem; }
+    .search-wrap .search-icon {
+      position: absolute; left: 0.85rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3); pointer-events: none; font-size: 0.85rem;
+    }
+    .search-wrap .field-input { padding-left: 2.4rem; }
 
-    /* MODAL */
-    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(13,13,13,0.7); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+    /* Role tags */
+    .role-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 0.3rem 0.75rem;
+      border-radius: 100px;
+    }
+    .role-admin   { background: rgba(255,92,53,0.15); color: var(--ember); border: 1px solid rgba(255,92,53,0.3); }
+    .role-viewer  { background: rgba(34,199,138,0.12); color: var(--jade); border: 1px solid rgba(34,199,138,0.3); }
+    .role-public  { background: rgba(79,142,255,0.1); color: var(--accent); border: 1px solid rgba(79,142,255,0.25); }
+
+    /* Warning bar */
+    #limit-warn {
+      background: rgba(240,180,41,0.08);
+      border: 1px solid rgba(240,180,41,0.25);
+      border-radius: var(--r);
+      padding: 0.75rem 1.25rem;
+      font-size: 0.8rem;
+      color: var(--gold);
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+
+    /* ═══════════════════════════
+       MODAL
+    ═══════════════════════════ */
+    .modal-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(7,8,10,0.8);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      align-items: center; justify-content: center;
+      padding: 1rem;
+    }
     .modal-backdrop.active { display: flex; }
-    .modal-box { background: var(--paper); border: 1.5px solid var(--rule-h); border-radius: 12px; width: 100%; max-width: 440px; animation: modalIn .2s ease; }
-    @keyframes modalIn { from { opacity:0; transform: scale(0.96) translateY(12px); } to { opacity:1; transform: scale(1) translateY(0); } }
-    .modal-head { padding: 1.25rem 1.5rem; border-bottom: 1.5px solid var(--rule); display: flex; align-items: center; justify-content: space-between; }
-    .modal-title { font-family: 'Clash Display', sans-serif; font-size: 1.25rem; font-weight: 700; }
+    .modal-box {
+      background: var(--panel);
+      border: 1px solid var(--border-h);
+      border-radius: var(--r-lg);
+      width: 100%; max-width: 460px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+      animation: modalIn .22s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(0.95) translateY(16px); }
+      to   { opacity:1; transform: scale(1)    translateY(0); }
+    }
+    .modal-head {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.35rem; font-weight: 400;
+      color: var(--text);
+    }
     .modal-body { padding: 1.5rem; }
-    .file-drop { border: 2px dashed var(--rule-h); border-radius: var(--r); padding: 1.25rem; text-align: center; cursor: pointer; position: relative; transition: border-color .2s, background .2s; }
-    .file-drop:hover { border-color: var(--fire); background: rgba(232,76,14,0.03); }
+
+    /* File drop */
+    .file-drop {
+      border: 1.5px dashed var(--border-h);
+      border-radius: var(--r);
+      padding: 1.5rem;
+      text-align: center; cursor: pointer;
+      position: relative;
+      transition: border-color .2s, background .2s;
+      background: var(--surface);
+    }
+    .file-drop:hover { border-color: var(--accent); background: var(--accent-glow); }
     .file-drop input[type=file] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
-    .role-tag { font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.25rem 0.65rem; border-radius: 4px; }
-    .role-admin  { background: rgba(232,76,14,0.15); color: var(--fire); border:1px solid rgba(232,76,14,0.3); }
-    .role-viewer { background: rgba(26,107,69,0.12); color: var(--jade); border:1px solid rgba(26,107,69,0.3); }
-    .role-public { background: rgba(26,58,107,0.1); color: var(--cobalt); border:1px solid rgba(26,58,107,0.25); }
 
-    /* TOASTS */
-    #toasts { position: fixed; top: 1rem; right: 1rem; z-index: 9998; display: flex; flex-direction: column; gap: 0.4rem; }
-    .toast-item { font-family: 'Space Mono', monospace; font-size: 0.75rem; padding: 0.65rem 1.1rem; border-radius: 6px; border-left: 3px solid transparent; animation: toastIn .25s ease; display: flex; align-items: center; gap: 0.5rem; }
-    @keyframes toastIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
-    .t-ok  { background: var(--paper); border-left-color: var(--jade); color:var(--ink); box-shadow:0 4px 16px rgba(0,0,0,0.1); }
-    .t-err { background: var(--paper); border-left-color: var(--fire); color:var(--ink); box-shadow:0 4px 16px rgba(0,0,0,0.1); }
-    .t-inf { background: var(--paper); border-left-color: var(--cobalt); color:var(--ink); box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+    /* ═══════════════════════════
+       TOASTS
+    ═══════════════════════════ */
+    #toasts {
+      position: fixed; top: 1.25rem; right: 1.25rem;
+      z-index: 9998;
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
+    .toast-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; font-weight: 500;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      border-left: 3px solid transparent;
+      animation: toastIn .25s cubic-bezier(.4,0,.2,1);
+      display: flex; align-items: center; gap: 0.5rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+    }
+    @keyframes toastIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+    .t-ok  { background: rgba(19,22,29,0.95); border-left-color: var(--jade);   color: var(--text); }
+    .t-err { background: rgba(19,22,29,0.95); border-left-color: var(--ember);  color: var(--text); }
+    .t-inf { background: rgba(19,22,29,0.95); border-left-color: var(--accent); color: var(--text); }
 
-    /* SETUP MODAL */
-    .info-box { background: rgba(26,58,107,0.06); border: 1.5px solid rgba(26,58,107,0.18); border-radius: var(--r); padding: 1rem 1.25rem; font-size: 0.82rem; color: var(--cobalt); margin-bottom: 1.5rem; }
-    .info-box strong { display: block; font-weight: 700; margin-bottom: 0.25rem; }
-    .info-box code { display: block; background: rgba(26,58,107,0.1); border-radius: 4px; padding: 0.65rem 0.75rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; line-height: 1.6; margin-top: 0.5rem; white-space: pre; overflow-x: auto; }
+    /* ═══════════════════════════
+       FILES PAGE
+    ═══════════════════════════ */
+    .files-filter-bar {
+      display: flex; gap: 0.75rem;
+      margin-bottom: 1.75rem; flex-wrap: wrap; align-items: center;
+    }
+    .filter-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 0.4rem 0.9rem;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-3);
+      cursor: pointer; transition: all .15s;
+    }
+    .filter-chip:hover { border-color: var(--border-h); color: var(--text-2); }
+    .filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .file-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden; cursor: pointer;
+      transition: box-shadow .2s, transform .2s, border-color .2s;
+      display: flex; flex-direction: column;
+    }
+    .file-card:hover {
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(-3px);
+      border-color: var(--border-h);
+    }
+    .file-card-preview {
+      height: 130px;
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden; flex-shrink: 0;
+    }
+    .file-card-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .file-type-icon { font-size: 2.8rem; opacity: 0.25; }
+    .file-type-badge {
+      position: absolute; top: 8px; right: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: var(--deep);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .file-card-body {
+      padding: 1rem; flex: 1;
+      display: flex; flex-direction: column; gap: 0.3rem;
+    }
+    .file-card-name { font-weight: 600; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+    .file-card-meta { font-size: 0.7rem; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+    .file-card-unit {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 100px;
+      margin-top: auto; padding-top: 0.5rem;
+    }
+    .file-card-owner { font-size: 0.7rem; color: var(--text-2); }
+
+    /* ═══════════════════════════
+       VIEWER PAGE
+    ═══════════════════════════ */
+    #page-viewer { background: #111316; height: 100vh; overflow: hidden; }
+
+    .viewer-header {
+      background: #1a1d24;
+      color: var(--text);
+      padding: 0 1.25rem;
+      height: 52px;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .viewer-filename {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 380px; color: var(--text);
+    }
+    .viewer-toolbar { display: flex; align-items: center; gap: 0.4rem; }
+    .viewer-toolbar button {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      transition: background .15s;
+      display: inline-flex; align-items: center; gap: 0.3rem;
+    }
+    .viewer-toolbar button:hover { background: rgba(255,255,255,0.12); }
+    .viewer-toolbar .sep { width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 0.2rem; }
+    .viewer-toolbar .page-info {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.35);
+      white-space: nowrap;
+    }
+    .viewer-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    .viewer-thumbs {
+      width: 160px;
+      background: #161820;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      overflow-y: auto;
+      padding: 0.75rem 0.5rem;
+      display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0;
+    }
+    .viewer-thumbs::-webkit-scrollbar { width: 3px; }
+    .viewer-thumbs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    .thumb-item {
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      border-radius: 6px; overflow: hidden;
+      transition: border-color .15s; background: #1a1a1a;
+    }
+    .thumb-item:hover { border-color: rgba(79,142,255,0.4); }
+    .thumb-item.active { border-color: var(--accent); }
+    .thumb-item canvas { display: block; width: 100%; height: auto; }
+    .thumb-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem;
+      text-align: center;
+      color: rgba(255,255,255,0.25);
+      padding: 0.2rem 0;
+    }
+    .viewer-main {
+      flex: 1; overflow-y: auto;
+      display: flex; flex-direction: column;
+      align-items: center; padding: 1.5rem 1rem; gap: 1rem;
+      background: #1c1f27;
+    }
+    .viewer-main::-webkit-scrollbar { width: 5px; }
+    .viewer-main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    .pdf-page-wrap { box-shadow: 0 8px 32px rgba(0,0,0,0.6); position: relative; }
+    .pdf-page-wrap canvas { display: block; }
+    .viewer-img-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 2rem; overflow: auto; background: #1c1f27;
+    }
+    .viewer-img-wrap img {
+      max-width: 100%; max-height: 100%;
+      border-radius: var(--r-lg);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+    }
+    .viewer-other-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1.5rem; color: var(--text); padding: 2rem;
+      text-align: center; background: #1c1f27;
+    }
+    .viewer-other-wrap i { font-size: 5rem; opacity: 0.15; }
+    .viewer-loading {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: var(--text-3);
+      flex-direction: column; gap: 1rem; background: #1c1f27;
+    }
+    .viewer-loading .spin {
+      width: 32px; height: 32px;
+      border: 2px solid rgba(79,142,255,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    /* ═══════════════════════════
+       SETUP MODAL
+    ═══════════════════════════ */
+    .info-box {
+      background: rgba(79,142,255,0.05);
+      border: 1px solid rgba(79,142,255,0.15);
+      border-radius: var(--r);
+      padding: 1rem 1.25rem;
+      font-size: 0.82rem;
+      color: var(--accent-2);
+      margin-bottom: 1rem;
+    }
+    .info-box strong { display: block; font-weight: 700; margin-bottom: 0.25rem; color: var(--text); }
+    .info-box code {
+      display: block;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem; line-height: 1.6;
+      margin-top: 0.5rem;
+      white-space: pre; overflow-x: auto;
+      color: var(--text-2);
+    }
+
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ═══════════════════════════
+       RESPONSIVE
+    ═══════════════════════════ */
     @media (max-width: 768px) {
-      .landing-grid { grid-template-columns: 1fr; }
+      .landing-container { grid-template-columns: 1fr; }
       .landing-right { display: none; }
-      .landing-left { padding: 2.5rem 1.5rem; }
+      .landing-left { padding: 3rem 1.5rem; }
       #page-login { flex-direction: column; }
       .login-left { padding: 2.5rem 1.5rem; }
-      .login-left-title { font-size: 2rem; }
+      .login-deco-title { font-size: 2rem; }
       .hide-mob { display: none !important; }
+      .app-header, .topbar { padding: 0 1rem; }
+      .app-content { padding: 1.5rem 1rem; }
     }
-
-    /* ── PÁGINA ARCHIVOS ── */
-    .files-filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
-    .filter-chip { font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.4rem 0.9rem; border-radius: 20px; border: 1.5px solid var(--rule-h); background: var(--cream); color: var(--muted); cursor: pointer; transition: all .15s; }
-    .filter-chip:hover { border-color: var(--ink); color: var(--ink); }
-    .filter-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-    .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
-    .file-card { background: var(--cream); border: 1.5px solid var(--rule-h); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow .2s, transform .2s, border-color .2s; display: flex; flex-direction: column; }
-    .file-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.1); transform: translateY(-2px); border-color: var(--ink); }
-    .file-card-preview { height: 130px; background: var(--paper2); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; flex-shrink: 0; }
-    .file-card-preview img { width: 100%; height: 100%; object-fit: cover; }
-    .file-card-preview .file-type-icon { font-size: 2.8rem; opacity: 0.35; }
-    .file-card-preview .file-type-badge { position: absolute; top: 8px; right: 8px; font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--ink); color: var(--paper); }
-    .file-card-body { padding: 0.9rem; flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
-    .file-card-name { font-weight: 700; font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .file-card-meta { font-size: 0.72rem; color: var(--muted); font-family: 'Space Mono', monospace; }
-    .file-card-unit { display: inline-block; font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.15rem 0.45rem; border-radius: 4px; color: var(--cobalt); background: rgba(26,58,107,0.1); margin-top: auto; padding-top: 0.5rem; }
-    .file-card-owner { font-size: 0.7rem; color: var(--muted); }
-
-    /* ── PÁGINA VISOR DE ARCHIVO ── */
-    #page-viewer { background: #1e1e1e; height: 100vh; overflow: hidden; }
-    .viewer-header { background: #3c3c3c; color: #f0f0f0; padding: 0 1rem; height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #555; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-    .viewer-filename { font-family: 'Cabinet Grotesk', sans-serif; font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; color: #f0f0f0; }
-    .viewer-toolbar { display: flex; align-items: center; gap: 0.4rem; }
-    .viewer-toolbar button { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #f0f0f0; border-radius: 4px; padding: 0.35rem 0.7rem; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 0.68rem; transition: background .15s; display: inline-flex; align-items: center; gap: 0.3rem; }
-    .viewer-toolbar button:hover { background: rgba(255,255,255,0.18); }
-    .viewer-toolbar .sep { width: 1px; height: 20px; background: rgba(255,255,255,0.15); margin: 0 0.2rem; }
-    .viewer-toolbar .page-info { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: rgba(240,240,240,0.6); white-space: nowrap; }
-    .viewer-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
-    /* Panel miniaturas */
-    .viewer-thumbs { width: 160px; background: #2b2b2b; border-right: 1px solid #444; overflow-y: auto; padding: 0.75rem 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
-    .viewer-thumbs::-webkit-scrollbar { width: 4px; }
-    .viewer-thumbs::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
-    .thumb-item { cursor: pointer; border: 2px solid transparent; border-radius: 4px; overflow: hidden; transition: border-color .15s; background: #1a1a1a; }
-    .thumb-item:hover { border-color: rgba(232,76,14,0.5); }
-    .thumb-item.active { border-color: var(--fire); }
-    .thumb-item canvas { display: block; width: 100%; height: auto; }
-    .thumb-num { font-family: 'Space Mono', monospace; font-size: 0.6rem; text-align: center; color: rgba(240,240,240,0.4); padding: 0.2rem 0; }
-    /* Área principal PDF */
-    .viewer-main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 1.5rem 1rem; gap: 1rem; background: #525659; }
-    .viewer-main::-webkit-scrollbar { width: 6px; }
-    .viewer-main::-webkit-scrollbar-thumb { background: #777; border-radius: 3px; }
-    .pdf-page-wrap { box-shadow: 0 4px 20px rgba(0,0,0,0.5); position: relative; }
-    .pdf-page-wrap canvas { display: block; }
-    /* Imagen */
-    .viewer-img-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; overflow: auto; background: #525659; }
-    .viewer-img-wrap img { max-width: 100%; max-height: 100%; border-radius: 6px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
-    /* Otro */
-    .viewer-other-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; color: #f0f0f0; padding: 2rem; text-align: center; background: #1e1e1e; }
-    .viewer-other-wrap i { font-size: 5rem; opacity: 0.2; }
-    /* Loading spinner */
-    .viewer-loading { flex: 1; display: flex; align-items: center; justify-content: center; color: rgba(240,240,240,0.5); flex-direction: column; gap: 1rem; background: #525659; }
-    .viewer-loading .spin { width: 32px; height: 32px; border: 3px solid rgba(232,76,14,0.3); border-top-color: var(--fire); border-radius: 50%; animation: spin .7s linear infinite; }
   </style>
 </head>
 <body>
@@ -250,49 +1186,72 @@
 <!-- ════ LANDING ════ -->
 <div id="page-landing" class="page active">
   <nav class="topbar">
-    <div class="topbar-brand"><div class="brand-dot"></div>DataVault</div>
-    <div style="display:flex;gap:0.6rem">
-      <button class="btn-ghost-dark" onclick="goToPublic()"><i class="bi bi-eye"></i> Ver Unidades</button>
-      <button class="btn-ghost-dark" onclick="goToLogin()"><i class="bi bi-arrow-right"></i> Ingresar</button>
+    <div class="brand">
+      <div class="brand-mark"><i class="bi bi-database-fill" style="color:#fff;font-size:0.85rem"></i></div>
+      DataVault
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-ghost" onclick="goToPublic()"><i class="bi bi-eye"></i> <span class="hide-mob">Ver Unidades</span></button>
+      <button class="btn btn-primary" onclick="goToLogin()"><i class="bi bi-arrow-right"></i> <span class="hide-mob">Ingresar</span></button>
     </div>
   </nav>
-  <div class="landing-grid">
+
+  <div class="landing-container">
     <div class="landing-left">
-      <div class="landing-eyebrow">Bienvenido a mis proyectos</div>
-      <h1 class="landing-headline">Organizo mis <em>trabajos</em> con precisión</h1>
-      <p class="landing-sub">Ingeniero que esta cursando el curso de Base de Datos II en el ciclo V</p>
+      <div class="eyebrow"><div class="eyebrow-line"></div>Bienvenido a mis proyectos</div>
+      <h1 class="hero-headline">Organizo mis<br><em>trabajos</em> con<br>precisión</h1>
+      <p class="hero-sub">Ingeniero cursando Base de Datos II en el ciclo V. Un espacio donde cada proyecto encuentra su lugar.</p>
+
       <ul class="feature-list">
-        <li><i class="bi bi-check-circle-fill"></i> Estudiante con 19 años</li>
-        <li><i class="bi bi-check-circle-fill"></i> Ingeniero con ganas de aprender</li>
-        <li><i class="bi bi-check-circle-fill"></i> Aprendiendo mientras me divierto</li>
-        <li><i class="bi bi-check-circle-fill"></i> Lugar de trabajo</li>
-        <li><i class="bi bi-check-circle-fill"></i> Exportación CSV y búsqueda en tiempo real</li>
+        <li><i class="bi bi-person-check-fill"></i> Estudiante con 19 años</li>
+        <li><i class="bi bi-lightbulb-fill"></i> Ingeniero con ganas de aprender</li>
+        <li><i class="bi bi-controller"></i> Aprendiendo mientras me divierto</li>
+        <li><i class="bi bi-building"></i> Lugar de trabajo</li>
+        <li><i class="bi bi-table"></i> Exportación CSV y búsqueda en tiempo real</li>
       </ul>
-      <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
-        <button class="btn-fire" onclick="goToLogin()"><i class="bi bi-box-arrow-in-right"></i> Ingresar</button>
-        <button class="btn-outline" onclick="goToPublic()"><i class="bi bi-eye"></i> Vista Pública</button>
-        <button class="btn-outline" onclick="showSupabaseSetup()"><i class="bi bi-database"></i> Setup DB</button>
+
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="goToLogin()"><i class="bi bi-box-arrow-in-right"></i> Ingresar al sistema</button>
+        <button class="btn btn-ghost" onclick="goToPublic()"><i class="bi bi-eye"></i> Vista Pública</button>
+        <button class="btn btn-ghost" onclick="showSupabaseSetup()"><i class="bi bi-database"></i> Setup DB</button>
       </div>
+
       <div class="stat-strip">
-        <div class="stat-cell"><div class="stat-cell-num" id="stat-total-landing">—</div><div class="stat-cell-label">Registros totales</div></div>
-        <div class="stat-cell"><div class="stat-cell-num">4</div><div class="stat-cell-label">Unidades activas</div></div>
-        <div class="stat-cell"><div class="stat-cell-num">3</div><div class="stat-cell-label">Niveles de acceso</div></div>
-        <div class="stat-cell"><div class="stat-cell-num"><i class="bi bi-shield-check text-jade" style="font-size:1.5rem"></i></div><div class="stat-cell-label">RLS activado</div></div>
+        <div class="stat-cell">
+          <div class="stat-num" id="stat-total-landing">—</div>
+          <div class="stat-label">Registros totales</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">4</div>
+          <div class="stat-label">Unidades activas</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">3</div>
+          <div class="stat-label">Niveles de acceso</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num" style="font-size:1.75rem"><i class="bi bi-shield-check" style="color:var(--jade)"></i></div>
+          <div class="stat-label">RLS activado</div>
+        </div>
       </div>
     </div>
+
     <div class="landing-right">
-      <div style="width:100%;max-width:360px;position:relative;z-index:1">
-        <div style="background:rgba(245,240,232,0.06);border:1px solid rgba(245,240,232,0.1);border-radius:10px;padding:1.5rem;margin-bottom:0.75rem">
-          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:rgba(245,240,232,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem">🌐 Público — sin login</div>
-          <div style="font-family:'Space Mono',monospace;font-size:0.72rem;color:rgba(245,240,232,0.5)">Ver unidades y explorar registros</div>
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:0.75rem;width:100%;max-width:340px;margin:auto">
+        <div class="access-card jade-border" style="margin-bottom:0">
+          <div class="access-card-badge" style="color:var(--jade)">Público — sin login</div>
+          <h3>Vista libre</h3>
+          <p>Explora unidades y registros sin necesidad de cuenta.</p>
         </div>
-        <div style="background:rgba(245,240,232,0.06);border:1px solid rgba(245,240,232,0.1);border-radius:10px;padding:1.5rem;margin-bottom:0.75rem">
-          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:rgba(245,240,232,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem">👁 Visualizador</div>
-          <div style="font-family:'Space Mono',monospace;font-size:0.72rem;color:rgba(245,240,232,0.5)">Ver + buscar + exportar CSV</div>
+        <div class="access-card accent-border">
+          <div class="access-card-badge" style="color:var(--accent)">Visualizador</div>
+          <h3>Acceso completo</h3>
+          <p>Ver, buscar y exportar CSV en todas las unidades.</p>
         </div>
-        <div style="background:rgba(232,76,14,0.12);border:1px solid rgba(232,76,14,0.25);border-radius:10px;padding:1.5rem">
-          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:rgba(245,240,232,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem">👑 Admin — cuenta única</div>
-          <div style="font-family:'Space Mono',monospace;font-size:0.72rem;color:rgba(245,240,232,0.5)">CRUD completo en todas las unidades</div>
+        <div class="access-card ember-border">
+          <div class="access-card-badge" style="color:var(--ember)">Admin — cuenta única</div>
+          <h3>Control total</h3>
+          <p>CRUD completo en todas las unidades del sistema.</p>
         </div>
       </div>
     </div>
@@ -302,16 +1261,20 @@
 <!-- ════ LOGIN / REGISTRO ════ -->
 <div id="page-login" class="page">
   <div class="login-left hide-mob">
-    <div class="login-left-title">Accede al<br>sistema.</div>
-    <p class="login-left-sub">Ingresa con tu cuenta o regístrate como visualizador.</p>
+    <div class="login-deco-title">Accede al<br>sistema.</div>
+    <p class="login-deco-sub">Ingresa con tu cuenta o regístrate como visualizador para explorar los datos.</p>
+    <div class="login-deco-badge">
+      <div class="brand-dot"></div>
+      DataVault v2.0
+    </div>
   </div>
+
   <div class="login-right">
     <div class="login-card">
-      <button onclick="goToLanding()" style="background:transparent;border:none;color:rgba(245,240,232,0.4);cursor:pointer;font-family:'Space Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1.5rem;padding:0;display:flex;align-items:center;gap:0.4rem">
-        <i class="bi bi-arrow-left"></i> Volver
+      <button onclick="goToLanding()" class="login-back-btn">
+        <i class="bi bi-arrow-left"></i> Volver al inicio
       </button>
 
-      <!-- TAB SWITCH -->
       <div class="tab-switch">
         <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Ingresar</button>
         <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Registrarse</button>
@@ -322,33 +1285,33 @@
 
       <!-- FORMULARIO LOGIN -->
       <div id="form-login">
-        <div class="login-card-title">Ingresar</div>
-        <div class="login-card-sub" style="margin-bottom:1.5rem">Usuario y contraseña</div>
+        <div class="login-title">Bienvenido</div>
+        <div class="login-sub">Ingresa con tu usuario y contraseña</div>
         <div style="margin-bottom:1rem">
           <label class="login-field-label">Correo electrónico</label>
           <input id="login-user" type="email" class="login-field-input" placeholder="correo@ejemplo.com" autocomplete="username">
         </div>
-        <div style="margin-bottom:1.75rem">
+        <div style="margin-bottom:2rem">
           <label class="login-field-label">Contraseña</label>
           <div style="position:relative">
             <input id="login-pass" type="password" class="login-field-input" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-            <button onclick="togglePass('login-pass',this)" type="button" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:transparent;border:none;color:rgba(245,240,232,0.4);cursor:pointer;font-size:0.9rem"><i class="bi bi-eye"></i></button>
+            <button onclick="togglePass('login-pass',this)" type="button" style="position:absolute;right:0.85rem;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text-3);cursor:pointer;font-size:0.9rem"><i class="bi bi-eye"></i></button>
           </div>
         </div>
-        <button class="btn-fire" style="width:100%;justify-content:center;padding:0.85rem" onclick="doLogin()">
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:0.9rem;font-size:0.75rem" onclick="doLogin()">
           <i class="bi bi-box-arrow-in-right"></i> Entrar al panel
         </button>
-        <div style="margin-top:1.25rem;padding:0.75rem;background:rgba(245,240,232,0.05);border-radius:6px;font-size:0.75rem;color:rgba(245,240,232,0.4);font-family:'Space Mono',monospace;text-align:center">
+        <div style="margin-top:1.25rem;padding:0.75rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:0.72rem;color:var(--text-3);font-family:'JetBrains Mono',monospace;text-align:center">
           Ingresa con tu correo y contraseña
         </div>
       </div>
 
       <!-- FORMULARIO REGISTRO -->
       <div id="form-register" style="display:none">
-        <div class="login-card-title">Crear Cuenta</div>
-        <div class="login-card-sub" style="margin-bottom:1.5rem">Solo como <span style="color:#4caf84">Visualizador</span></div>
-        <div style="background:rgba(26,107,69,0.1);border:1px solid rgba(26,107,69,0.25);border-radius:var(--r);padding:0.7rem 0.9rem;font-size:0.78rem;color:#4caf84;margin-bottom:1.25rem">
-          <i class="bi bi-info-circle me-1"></i> Las cuentas nuevas son de visualizador. Solo hay un administrador.
+        <div class="login-title">Crear cuenta</div>
+        <div class="login-sub">Solo como <span style="color:var(--jade)">Visualizador</span></div>
+        <div style="background:rgba(34,199,138,0.07);border:1px solid rgba(34,199,138,0.2);border-radius:var(--r);padding:0.75rem 1rem;font-size:0.78rem;color:var(--jade);margin-bottom:1.25rem">
+          <i class="bi bi-info-circle"></i> Las cuentas nuevas son de visualizador. Solo hay un administrador.
         </div>
         <div style="margin-bottom:1rem">
           <label class="login-field-label">Nombre completo</label>
@@ -362,14 +1325,14 @@
           <label class="login-field-label">Contraseña</label>
           <div style="position:relative">
             <input id="reg-pass" type="password" class="login-field-input" placeholder="Mínimo 6 caracteres">
-            <button onclick="togglePass('reg-pass',this)" type="button" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:transparent;border:none;color:rgba(245,240,232,0.4);cursor:pointer;font-size:0.9rem"><i class="bi bi-eye"></i></button>
+            <button onclick="togglePass('reg-pass',this)" type="button" style="position:absolute;right:0.85rem;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text-3);cursor:pointer;font-size:0.9rem"><i class="bi bi-eye"></i></button>
           </div>
         </div>
-        <div style="margin-bottom:1.75rem">
-          <label class="login-field-label">Confirmar Contraseña</label>
+        <div style="margin-bottom:2rem">
+          <label class="login-field-label">Confirmar contraseña</label>
           <input id="reg-pass2" type="password" class="login-field-input" placeholder="Repite la contraseña" onkeydown="if(event.key==='Enter')doRegister()">
         </div>
-        <button class="btn-jade" style="width:100%;justify-content:center;padding:0.85rem" onclick="doRegister()">
+        <button class="btn btn-jade" style="width:100%;justify-content:center;padding:0.9rem;font-size:0.75rem" onclick="doRegister()">
           <i class="bi bi-person-plus"></i> Crear cuenta de visualizador
         </button>
       </div>
@@ -377,12 +1340,15 @@
   </div>
 </div>
 
-<!-- ════ VISTA PÚBLICA (sin login) ════ -->
+<!-- ════ VISTA PÚBLICA ════ -->
 <div id="page-public" class="page">
   <nav class="topbar">
-    <div class="topbar-brand"><div class="brand-dot"></div>DataVault</div>
-    <div style="display:flex;gap:0.6rem">
-      <button class="btn-ghost-dark" onclick="goToLogin()"><i class="bi bi-box-arrow-in-right"></i> Ingresar</button>
+    <div class="brand">
+      <div class="brand-mark"><i class="bi bi-database-fill" style="color:#fff;font-size:0.85rem"></i></div>
+      DataVault
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-primary" onclick="goToLogin()"><i class="bi bi-box-arrow-in-right"></i> <span class="hide-mob">Ingresar</span></button>
     </div>
   </nav>
   <div class="app-content">
@@ -394,20 +1360,23 @@
     </div>
     <div class="public-banner">
       <i class="bi bi-eye"></i>
-      Estás viendo las unidades en modo público. Haz clic en cualquier unidad para explorar sus registros. <a href="#" onclick="goToLogin();return false" style="color:var(--jade);font-weight:700;text-decoration:none">Inicia sesión</a> para acceder al panel completo.
+      Vista pública. <a href="#" onclick="goToLogin();return false">Inicia sesión</a> para acceder al panel completo.
     </div>
     <div class="units-grid" id="units-grid-public"></div>
   </div>
 </div>
 
-<!-- ════ DETALLE PÚBLICO (sin login) ════ -->
+<!-- ════ DETALLE PÚBLICO ════ -->
 <div id="page-public-detail" class="page" style="flex-direction:column;min-height:100vh">
   <header class="app-header">
-    <div style="display:flex;align-items:center;gap:0.75rem">
-      <button class="btn-ghost-dark" onclick="goToPublic()" style="padding:0.45rem 0.75rem"><i class="bi bi-arrow-left"></i></button>
-      <div class="topbar-brand"><div class="brand-dot"></div><span id="pub-detail-title">Unidad</span></div>
+    <div class="app-header-left">
+      <button class="btn btn-ghost-light btn-icon" onclick="goToPublic()"><i class="bi bi-arrow-left"></i></button>
+      <div class="brand">
+        <div class="brand-mark"><i class="bi bi-database-fill" style="color:#fff;font-size:0.85rem"></i></div>
+        <span id="pub-detail-title">Unidad</span>
+      </div>
     </div>
-    <button class="btn-ghost-dark" onclick="goToLogin()"><i class="bi bi-box-arrow-in-right"></i> <span class="hide-mob">Ingresar</span></button>
+    <button class="btn btn-primary" onclick="goToLogin()"><i class="bi bi-box-arrow-in-right"></i> <span class="hide-mob">Ingresar</span></button>
   </header>
   <div class="app-content">
     <div class="section-header">
@@ -415,16 +1384,14 @@
         <div class="section-tag" id="pub-detail-tag">Acceso público</div>
         <div class="section-title">Registros</div>
       </div>
-      <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
-        <span class="role-tag role-public" style="font-size:0.62rem">🌐 Vista pública</span>
-      </div>
+      <span class="role-tag role-public">🌐 Vista pública</span>
     </div>
-    <div class="stats-row" style="grid-template-columns:repeat(2,1fr);max-width:400px;margin-bottom:1.5rem">
+    <div class="stats-row" style="grid-template-columns:repeat(2,1fr);max-width:380px;margin-bottom:1.75rem">
       <div class="stats-cell"><div class="stats-num" id="pub-detail-stat-total">0</div><div class="stats-lbl">En esta unidad</div></div>
       <div class="stats-cell"><div class="stats-num" id="pub-detail-stat-filtered">0</div><div class="stats-lbl">Mostrando</div></div>
     </div>
-    <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap">
-      <div class="search-wrap" style="flex:1;min-width:200px;max-width:360px">
+    <div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;flex-wrap:wrap">
+      <div class="search-wrap" style="flex:1;min-width:220px;max-width:380px">
         <i class="bi bi-search search-icon"></i>
         <input id="pub-unit-search" type="text" class="field-input" placeholder="Buscar por nombre, email, dpto..." oninput="renderPublicUnitTable()">
       </div>
@@ -436,20 +1403,29 @@
           <tbody id="pub-unit-tbody"></tbody>
         </table>
       </div>
-      <div id="pub-unit-empty" class="empty-state" style="display:none"><i class="bi bi-inbox empty-icon"></i><div class="empty-title">Sin registros</div><div style="font-size:0.82rem">Esta unidad aún no tiene registros.</div></div>
-      <div id="pub-unit-no-results" class="empty-state" style="display:none"><i class="bi bi-search empty-icon"></i><div class="empty-title">Sin resultados</div><div style="font-size:0.82rem">Prueba con otros términos de búsqueda.</div></div>
+      <div id="pub-unit-empty" class="empty-state" style="display:none"><i class="bi bi-inbox empty-icon"></i><div class="empty-title">Sin registros</div><div style="font-size:0.82rem;color:var(--text-3)">Esta unidad aún no tiene registros.</div></div>
+      <div id="pub-unit-no-results" class="empty-state" style="display:none"><i class="bi bi-search empty-icon"></i><div class="empty-title">Sin resultados</div><div style="font-size:0.82rem;color:var(--text-3)">Prueba con otros términos.</div></div>
     </div>
   </div>
 </div>
 
-<!-- ════ MAIN — UNIDADES (logueado) ════ -->
+<!-- ════ MAIN — UNIDADES ════ -->
 <div id="page-main" class="page">
   <header class="app-header">
-    <div class="topbar-brand"><div class="brand-dot"></div>DataVault</div>
+    <div class="app-header-left">
+      <div class="brand">
+        <div class="brand-mark"><i class="bi bi-database-fill" style="color:#fff;font-size:0.85rem"></i></div>
+        DataVault
+      </div>
+      <div class="breadcrumb hide-mob">
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Panel principal</span>
+      </div>
+    </div>
     <div style="display:flex;align-items:center;gap:0.75rem">
       <span id="user-role-badge" class="role-tag"></span>
-      <span id="user-name-label" style="font-size:0.8rem;color:rgba(245,240,232,0.5)" class="hide-mob"></span>
-      <button class="btn-ghost-dark" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> <span class="hide-mob">Salir</span></button>
+      <span id="user-name-label" style="font-size:0.8rem;color:var(--text-2)" class="hide-mob"></span>
+      <button class="btn btn-ghost" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> <span class="hide-mob">Salir</span></button>
     </div>
   </header>
   <div class="app-content">
@@ -459,33 +1435,34 @@
         <div class="section-title">Unidades de Gestión</div>
       </div>
       <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
-        <button id="btn-files-page" class="btn-outline" onclick="goToFiles()" style="display:none"><i class="bi bi-folder2-open"></i> <span class="hide-mob">Archivos</span></button>
-        <button class="btn-outline" onclick="exportMainCSV()"><i class="bi bi-download"></i> <span class="hide-mob">Exportar CSV</span></button>
+        <button id="btn-files-page" class="btn btn-ghost" onclick="goToFiles()" style="display:none"><i class="bi bi-folder2-open"></i> <span class="hide-mob">Archivos</span></button>
+        <button class="btn btn-ghost" onclick="exportMainCSV()"><i class="bi bi-download"></i> <span class="hide-mob">Exportar CSV</span></button>
       </div>
     </div>
     <div class="stats-row">
       <div class="stats-cell"><div class="stats-num" id="stat-total">0</div><div class="stats-lbl">Total Registros</div></div>
       <div class="stats-cell"><div class="stats-num">4</div><div class="stats-lbl">Unidades</div></div>
       <div class="stats-cell">
-        <div class="stats-num" id="stat-role-icon" style="font-size:1.5rem">👑</div>
+        <div class="stats-num" id="stat-role-icon" style="font-size:1.75rem">👑</div>
         <div class="stats-lbl" id="stat-role-label">Administrador</div>
       </div>
     </div>
-    <div id="limit-warn" style="display:none;background:rgba(200,150,12,0.1);border:1.5px solid rgba(200,150,12,0.3);border-radius:6px;padding:0.75rem 1rem;font-size:0.8rem;color:var(--gold);margin-bottom:1.5rem">
-      <i class="bi bi-exclamation-triangle me-1"></i> Límite de 999 registros alcanzado.
-    </div>
+    <div id="limit-warn"><i class="bi bi-exclamation-triangle"></i> Límite de 999 registros alcanzado.</div>
     <div class="units-grid" id="units-grid"></div>
   </div>
 </div>
 
-<!-- ════ DETAIL — REGISTROS DE UNIDAD ════ -->
+<!-- ════ DETAIL — REGISTROS ════ -->
 <div id="page-detail" class="page" style="flex-direction:column;min-height:100vh">
   <header class="app-header">
-    <div style="display:flex;align-items:center;gap:0.75rem">
-      <button class="btn-ghost-dark" onclick="goToMain()" style="padding:0.45rem 0.75rem"><i class="bi bi-arrow-left"></i></button>
-      <div class="topbar-brand"><div class="brand-dot"></div><span id="detail-title">Unidad</span></div>
+    <div class="app-header-left">
+      <button class="btn btn-ghost-light btn-icon" onclick="goToMain()"><i class="bi bi-arrow-left"></i></button>
+      <div class="brand">
+        <div class="brand-mark"><i class="bi bi-database-fill" style="color:#fff;font-size:0.85rem"></i></div>
+        <span id="detail-title">Unidad</span>
+      </div>
     </div>
-    <button class="btn-ghost-dark" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> <span class="hide-mob">Salir</span></button>
+    <button class="btn btn-ghost" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> <span class="hide-mob">Salir</span></button>
   </header>
   <div class="app-content">
     <div class="section-header">
@@ -494,16 +1471,16 @@
         <div class="section-title">Registros</div>
       </div>
       <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
-        <button class="btn-outline" onclick="exportUnitCSV()"><i class="bi bi-download"></i> <span class="hide-mob">CSV</span></button>
-        <button id="btn-new-record" class="btn-fire" onclick="openAddModal()" style="display:none"><i class="bi bi-plus-lg"></i> Nuevo Registro</button>
+        <button class="btn btn-ghost" onclick="exportUnitCSV()"><i class="bi bi-download"></i> <span class="hide-mob">CSV</span></button>
+        <button id="btn-new-record" class="btn btn-primary" onclick="openAddModal()" style="display:none"><i class="bi bi-plus-lg"></i> <span class="hide-mob">Nuevo Registro</span></button>
       </div>
     </div>
-    <div class="stats-row" style="grid-template-columns:repeat(2,1fr);max-width:400px;margin-bottom:1.5rem">
+    <div class="stats-row" style="grid-template-columns:repeat(2,1fr);max-width:380px;margin-bottom:1.75rem">
       <div class="stats-cell"><div class="stats-num" id="detail-stat-total">0</div><div class="stats-lbl">En esta unidad</div></div>
       <div class="stats-cell"><div class="stats-num" id="detail-stat-filtered">0</div><div class="stats-lbl">Mostrando</div></div>
     </div>
-    <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap">
-      <div class="search-wrap" style="flex:1;min-width:200px;max-width:360px">
+    <div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;flex-wrap:wrap">
+      <div class="search-wrap" style="flex:1;min-width:220px;max-width:380px">
         <i class="bi bi-search search-icon"></i>
         <input id="unit-search" type="text" class="field-input" placeholder="Buscar por nombre, email, dpto..." oninput="renderUnitTable()">
       </div>
@@ -515,22 +1492,25 @@
           <tbody id="unit-tbody"></tbody>
         </table>
       </div>
-      <div id="unit-empty" class="empty-state" style="display:none"><i class="bi bi-inbox empty-icon"></i><div class="empty-title">Sin registros</div><div style="font-size:0.82rem">Agrega el primer registro con el botón de arriba.</div></div>
-      <div id="unit-no-results" class="empty-state" style="display:none"><i class="bi bi-search empty-icon"></i><div class="empty-title">Sin resultados</div><div style="font-size:0.82rem">Prueba con otros términos de búsqueda.</div></div>
+      <div id="unit-empty" class="empty-state" style="display:none"><i class="bi bi-inbox empty-icon"></i><div class="empty-title">Sin registros</div><div style="font-size:0.82rem;color:var(--text-3)">Agrega el primer registro con el botón de arriba.</div></div>
+      <div id="unit-no-results" class="empty-state" style="display:none"><i class="bi bi-search empty-icon"></i><div class="empty-title">Sin resultados</div><div style="font-size:0.82rem;color:var(--text-3)">Prueba con otros términos de búsqueda.</div></div>
     </div>
   </div>
 </div>
 
-<!-- ════ PÁGINA ARCHIVOS (Admin) ════ -->
+<!-- ════ ARCHIVOS (Admin) ════ -->
 <div id="page-files" class="page" style="flex-direction:column;min-height:100vh">
   <header class="app-header">
-    <div style="display:flex;align-items:center;gap:0.75rem">
-      <button class="btn-ghost-dark" onclick="goToMain()" style="padding:0.45rem 0.75rem"><i class="bi bi-arrow-left"></i></button>
-      <div class="topbar-brand"><div class="brand-dot"></div>Archivos</div>
+    <div class="app-header-left">
+      <button class="btn btn-ghost-light btn-icon" onclick="goToMain()"><i class="bi bi-arrow-left"></i></button>
+      <div class="brand">
+        <div class="brand-mark"><i class="bi bi-database-fill" style="color:#fff;font-size:0.85rem"></i></div>
+        Archivos
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:0.75rem">
-      <span id="files-badge" style="font-family:'Space Mono',monospace;font-size:0.65rem;color:rgba(245,240,232,0.45)"></span>
-      <button class="btn-ghost-dark" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> <span class="hide-mob">Salir</span></button>
+      <span id="files-badge" style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--text-3)"></span>
+      <button class="btn btn-ghost" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> <span class="hide-mob">Salir</span></button>
     </div>
   </header>
   <div class="app-content">
@@ -540,12 +1520,10 @@
         <div class="section-title">Archivos Subidos</div>
       </div>
     </div>
-
-    <!-- BARRA FILTROS -->
     <div class="files-filter-bar">
-      <div class="search-wrap" style="flex:1;min-width:200px;max-width:320px">
+      <div class="search-wrap" style="flex:1;min-width:220px;max-width:340px">
         <i class="bi bi-search search-icon"></i>
-        <input id="files-search" type="text" class="field-input" placeholder="Buscar archivo, nombre, unidad…" oninput="renderFilesPage()" style="padding-left:2.2rem">
+        <input id="files-search" type="text" class="field-input" placeholder="Buscar archivo, nombre, unidad…" oninput="renderFilesPage()" style="padding-left:2.4rem">
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
         <button class="filter-chip active" data-ftype="all" onclick="setFileFilter(this,'all')">Todos</button>
@@ -554,32 +1532,28 @@
         <button class="filter-chip" data-ftype="other" onclick="setFileFilter(this,'other')"><i class="bi bi-file-earmark"></i> Otros</button>
       </div>
     </div>
-
-    <!-- GRID DE ARCHIVOS -->
     <div id="files-grid" class="files-grid"></div>
     <div id="files-empty" class="empty-state" style="display:none">
       <i class="bi bi-folder2-open empty-icon"></i>
       <div class="empty-title">Sin archivos</div>
-      <div style="font-size:0.82rem">Aún no se han subido archivos en ninguna unidad.</div>
+      <div style="font-size:0.82rem;color:var(--text-3)">Aún no se han subido archivos.</div>
     </div>
     <div id="files-no-results" class="empty-state" style="display:none">
       <i class="bi bi-search empty-icon"></i>
       <div class="empty-title">Sin resultados</div>
-      <div style="font-size:0.82rem">Prueba con otros términos o filtros.</div>
+      <div style="font-size:0.82rem;color:var(--text-3)">Prueba con otros términos o filtros.</div>
     </div>
   </div>
 </div>
 
-<!-- ════ PÁGINA VISOR DE ARCHIVO ════ -->
+<!-- ════ VISOR DE ARCHIVO ════ -->
 <div id="page-viewer" class="page" style="flex-direction:column;min-height:100vh">
   <header class="viewer-header">
     <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1">
-      <button class="viewer-toolbar" style="display:contents" onclick="closeViewer()">
-        <button style="background:rgba(232,76,14,0.15);border-color:rgba(232,76,14,0.4);color:#f0f0f0;padding:0.35rem 0.8rem">
-          <i class="bi bi-arrow-left"></i> Volver
-        </button>
+      <button onclick="closeViewer()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:6px;padding:0.35rem 0.75rem;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:0.65rem;display:inline-flex;align-items:center;gap:0.3rem">
+        <i class="bi bi-arrow-left"></i> Volver
       </button>
-      <i id="viewer-type-icon" class="bi bi-file-earmark-pdf-fill" style="color:var(--fire);flex-shrink:0;font-size:1rem"></i>
+      <i id="viewer-type-icon" class="bi bi-file-earmark-pdf-fill" style="color:var(--ember);flex-shrink:0;font-size:1rem"></i>
       <span class="viewer-filename" id="viewer-filename">Archivo</span>
     </div>
     <div class="viewer-toolbar">
@@ -595,7 +1569,7 @@
     </div>
   </header>
   <div class="viewer-body" id="viewer-body">
-    <div class="viewer-loading"><div class="spin"></div><span>Cargando…</span></div>
+    <div class="viewer-loading"><div class="spin"></div><span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem">Cargando…</span></div>
   </div>
 </div>
 
@@ -604,7 +1578,7 @@
   <div class="modal-box">
     <div class="modal-head">
       <div class="modal-title" id="record-modal-title">Nuevo Registro</div>
-      <button class="btn-icon-sm" onclick="closeRecordModal()"><i class="bi bi-x-lg" style="font-size:0.8rem"></i></button>
+      <button class="btn btn-icon" onclick="closeRecordModal()"><i class="bi bi-x-lg" style="font-size:0.78rem"></i></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="form-id">
@@ -616,15 +1590,15 @@
         <label class="field-label">Adjunto (opcional)</label>
         <div class="file-drop">
           <input type="file" id="form-file" onchange="updateFileLabel()">
-          <div id="file-drop-label"><i class="bi bi-cloud-arrow-up" style="font-size:1.5rem;color:var(--fire)"></i><div style="font-size:0.82rem;font-weight:600;margin-top:0.4rem">Clic o arrastra un archivo</div><div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem">TXT, PDF, CSV, imágenes...</div></div>
+          <div id="file-drop-label"><i class="bi bi-cloud-arrow-up" style="font-size:1.5rem;color:var(--accent)"></i><div style="font-size:0.82rem;font-weight:600;margin-top:0.4rem;color:var(--text)">Clic o arrastra un archivo</div><div style="font-size:0.72rem;color:var(--text-3);margin-top:0.2rem">TXT, PDF, CSV, imágenes...</div></div>
         </div>
-        <div id="file-chosen" style="display:none;font-size:0.8rem;color:var(--fire);margin-top:0.5rem"><i class="bi bi-paperclip me-1"></i><span id="file-chosen-name"></span></div>
+        <div id="file-chosen" style="display:none;font-size:0.8rem;color:var(--accent);margin-top:0.5rem"><i class="bi bi-paperclip"></i> <span id="file-chosen-name"></span></div>
       </div>
       <div style="display:flex;gap:0.75rem">
-        <button class="btn-outline" style="flex:1;justify-content:center;padding:0.7rem" onclick="closeRecordModal()">Cancelar</button>
-        <button class="btn-fire" style="flex:1;justify-content:center;padding:0.7rem" id="form-submit-btn" onclick="submitRecord()">
+        <button class="btn btn-ghost" style="flex:1;justify-content:center;padding:0.75rem" onclick="closeRecordModal()">Cancelar</button>
+        <button class="btn btn-primary" style="flex:1;justify-content:center;padding:0.75rem" id="form-submit-btn" onclick="submitRecord()">
           <span id="form-submit-text">Guardar</span>
-          <span id="form-spinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></span>
+          <span id="form-spinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></span>
         </button>
       </div>
     </div>
@@ -633,48 +1607,45 @@
 
 <!-- ════ MODAL ELIMINAR ════ -->
 <div id="delete-modal" class="modal-backdrop" onclick="if(event.target===this)closeDeleteModal()">
-  <div class="modal-box" style="max-width:360px">
-    <div class="modal-body" style="text-align:center;padding:2rem">
-      <div style="width:52px;height:52px;border-radius:50%;background:rgba(232,76,14,0.1);border:1.5px solid rgba(232,76,14,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.3rem;color:var(--fire)"><i class="bi bi-trash3"></i></div>
-      <div class="modal-title" style="margin-bottom:0.5rem">¿Eliminar?</div>
-      <p id="delete-name-label" style="font-size:0.85rem;color:var(--muted);margin-bottom:1.5rem"></p>
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-body" style="text-align:center;padding:2.5rem 2rem">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,92,53,0.1);border:1px solid rgba(255,92,53,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:1.4rem;color:var(--ember)"><i class="bi bi-trash3"></i></div>
+      <div class="modal-title" style="margin-bottom:0.6rem">¿Eliminar registro?</div>
+      <p id="delete-name-label" style="font-size:0.85rem;color:var(--text-2);margin-bottom:2rem;line-height:1.5"></p>
       <div style="display:flex;gap:0.75rem">
-        <button class="btn-outline" style="flex:1;justify-content:center;padding:0.7rem" onclick="closeDeleteModal()">Cancelar</button>
-        <button class="btn-danger" style="flex:1" id="delete-confirm-btn" onclick="confirmDelete()">
+        <button class="btn btn-ghost" style="flex:1;justify-content:center;padding:0.75rem" onclick="closeDeleteModal()">Cancelar</button>
+        <button class="btn btn-danger" style="flex:1;justify-content:center;padding:0.75rem" id="delete-confirm-btn" onclick="confirmDelete()">
           <span id="delete-confirm-text">Eliminar</span>
-          <span id="delete-spinner" style="display:none;width:12px;height:12px;border:2px solid rgba(232,76,14,0.3);border-top-color:var(--fire);border-radius:50%;animation:spin .7s linear infinite;margin-left:4px"></span>
+          <span id="delete-spinner" style="display:none;width:12px;height:12px;border:2px solid rgba(255,92,53,0.3);border-top-color:var(--ember);border-radius:50%;animation:spin .7s linear infinite"></span>
         </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ════ MODAL VISOR ARCHIVO ════ -->
+<!-- ════ MODAL VISOR ════ -->
 <div id="viewer-modal" class="modal-backdrop" onclick="if(event.target===this)closeViewerModal()">
-  <div class="modal-box" style="max-width:620px;max-height:80vh;display:flex;flex-direction:column">
-    <div class="modal-head flex-shrink-0"><div class="modal-title" id="viewer-title">Archivo</div><button class="btn-icon-sm" onclick="closeViewerModal()"><i class="bi bi-x-lg" style="font-size:0.8rem"></i></button></div>
-    <div class="modal-body" style="overflow-y:auto;flex:1"><div id="viewer-content" style="font-family:'Space Mono',monospace;font-size:0.75rem;line-height:1.6;color:var(--ink);white-space:pre-wrap;word-break:break-all;margin:0"></div></div>
+  <div class="modal-box" style="max-width:640px;max-height:80vh;display:flex;flex-direction:column">
+    <div class="modal-head" style="flex-shrink:0"><div class="modal-title" id="viewer-title">Archivo</div><button class="btn btn-icon" onclick="closeViewerModal()"><i class="bi bi-x-lg" style="font-size:0.78rem"></i></button></div>
+    <div class="modal-body" style="overflow-y:auto;flex:1"><div id="viewer-content" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;line-height:1.6;color:var(--text-2);white-space:pre-wrap;word-break:break-all;margin:0"></div></div>
   </div>
 </div>
 
-<!-- ════ MODAL SETUP SUPABASE ════ -->
+<!-- ════ MODAL SETUP ════ -->
 <div id="setup-modal" class="modal-backdrop" onclick="if(event.target===this)closeSetupModal()">
-  <div class="modal-box" style="max-width:600px;max-height:88vh;display:flex;flex-direction:column">
-    <div class="modal-head flex-shrink-0">
-      <div class="modal-title"><i class="bi bi-database me-2"></i>Setup Supabase</div>
-      <button class="btn-icon-sm" onclick="closeSetupModal()"><i class="bi bi-x-lg" style="font-size:0.8rem"></i></button>
+  <div class="modal-box" style="max-width:620px;max-height:88vh;display:flex;flex-direction:column">
+    <div class="modal-head" style="flex-shrink:0">
+      <div class="modal-title"><i class="bi bi-database" style="margin-right:0.5rem;color:var(--accent)"></i>Setup Supabase</div>
+      <button class="btn btn-icon" onclick="closeSetupModal()"><i class="bi bi-x-lg" style="font-size:0.78rem"></i></button>
     </div>
     <div class="modal-body" style="overflow-y:auto;flex:1;font-size:0.85rem;line-height:1.6">
-
       <div class="info-box">
         <strong>1. Crear proyecto en supabase.com</strong>
         Ve a supabase.com → New Project. Copia la Project URL y la anon key.
       </div>
-
       <div class="info-box">
         <strong>2. Tabla de usuarios (login)</strong>
-        <code>-- Tabla de usuarios con roles y contraseña hasheada
-CREATE TABLE users (
+        <code>CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username TEXT UNIQUE NOT NULL,
   full_name TEXT,
@@ -682,140 +1653,42 @@ CREATE TABLE users (
   role TEXT NOT NULL CHECK (role IN ('admin','viewer')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Insertar el ÚNICO administrador (cambia la contraseña)
--- Usar pgcrypto para hashear: crypt('TU_PASS', gen_salt('bf'))
 INSERT INTO users (username, full_name, password_hash, role)
 VALUES ('newkevingc@gmail.com', 'Administrador', crypt('kohana160', gen_salt('bf')), 'admin');
-
--- Habilitar pgcrypto si no está activo
 CREATE EXTENSION IF NOT EXISTS pgcrypto;</code>
       </div>
-
       <div class="info-box">
-        <strong>3. Tablas separadas por unidad</strong>
-        <code>-- Tabla Unidad 1
-CREATE TABLE unit1_records (
+        <strong>3. Tablas por unidad</strong>
+        <code>CREATE TABLE unit1_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  department TEXT,
-  file_name TEXT,
-  file_content TEXT,
+  name TEXT NOT NULL, email TEXT NOT NULL,
+  department TEXT, file_name TEXT, file_content TEXT,
   created_by TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Tabla Unidad 2
-CREATE TABLE unit2_records (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  department TEXT,
-  file_name TEXT,
-  file_content TEXT,
-  created_by TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Tabla Unidad 3
-CREATE TABLE unit3_records (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  department TEXT,
-  file_name TEXT,
-  file_content TEXT,
-  created_by TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Tabla Unidad 4
-CREATE TABLE unit4_records (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  department TEXT,
-  file_name TEXT,
-  file_content TEXT,
-  created_by TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Índices para búsquedas rápidas en cada tabla
-CREATE INDEX idx_u1_name ON unit1_records(name);
-CREATE INDEX idx_u2_name ON unit2_records(name);
-CREATE INDEX idx_u3_name ON unit3_records(name);
-CREATE INDEX idx_u4_name ON unit4_records(name);</code>
+-- Repetir para unit2_records, unit3_records, unit4_records</code>
       </div>
-
       <div class="info-box">
         <strong>4. Row Level Security (RLS)</strong>
-        <code>-- Habilitar RLS en todas las tablas
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE unit1_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE unit2_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE unit3_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE unit4_records ENABLE ROW LEVEL SECURITY;
-
--- Políticas: lectura pública (anon puede leer)
-CREATE POLICY "Public read unit1" ON unit1_records FOR SELECT USING (true);
-CREATE POLICY "Public read unit2" ON unit2_records FOR SELECT USING (true);
-CREATE POLICY "Public read unit3" ON unit3_records FOR SELECT USING (true);
-CREATE POLICY "Public read unit4" ON unit4_records FOR SELECT USING (true);
-
--- Escritura: solo service_role (controlada desde JS con anon key
--- más validación de rol en la app)
--- Alternativa: usar una función RPC con SECURITY DEFINER</code>
+        <code>ALTER TABLE unit1_records ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read unit1" ON unit1_records FOR SELECT USING (true);</code>
       </div>
-
       <div class="info-box">
-        <strong>5. Función de login segura (RPC)</strong>
-        <code>-- Crear función para verificar contraseña
-CREATE OR REPLACE FUNCTION verify_login(p_username TEXT, p_password TEXT)
+        <strong>5. Función de login RPC</strong>
+        <code>CREATE OR REPLACE FUNCTION verify_login(p_username TEXT, p_password TEXT)
 RETURNS TABLE(id UUID, username TEXT, full_name TEXT, role TEXT) AS $$
 BEGIN
-  RETURN QUERY
-  SELECT u.id, u.username, u.full_name, u.role
-  FROM users u
-  WHERE u.username = p_username
+  RETURN QUERY SELECT u.id, u.username, u.full_name, u.role
+  FROM users u WHERE u.username = p_username
     AND u.password_hash = crypt(p_password, u.password_hash);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Función para registrar visualizador
-CREATE OR REPLACE FUNCTION register_viewer(
-  p_username TEXT,
-  p_password TEXT,
-  p_full_name TEXT
-) RETURNS TEXT AS $$
-BEGIN
-  -- Verificar que no exista
-  IF EXISTS (SELECT 1 FROM users WHERE username = p_username) THEN
-    RETURN 'username_taken';
-  END IF;
-  INSERT INTO users (username, full_name, password_hash, role)
-  VALUES (p_username, p_full_name, crypt(p_password, gen_salt('bf')), 'viewer');
-  RETURN 'ok';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;</code>
       </div>
-
       <div class="info-box">
-        <strong>6. Conectar en este archivo HTML</strong>
-        <code>// Busca en el JS la sección "SUPABASE CONFIG"
-// Reemplaza los valores:
-const SUPABASE_URL = 'https://xxxx.supabase.co';
+        <strong>6. Conectar en este HTML</strong>
+        <code>const SUPABASE_URL = 'https://xxxx.supabase.co';
 const SUPABASE_KEY = 'tu-anon-key-aqui';</code>
-      </div>
-
-      <div style="background:rgba(26,107,69,0.06);border:1.5px solid rgba(26,107,69,0.2);border-radius:6px;padding:1rem;font-size:0.8rem;color:var(--jade)">
-        <strong style="display:block;margin-bottom:0.25rem">✓ Resultado final:</strong>
-        Login con usuario+contraseña. Registro de visualizadores. 1 admin. Tablas separadas por unidad. Vista pública sin auth.
       </div>
     </div>
   </div>
@@ -826,7 +1699,6 @@ const SUPABASE_KEY = 'tu-anon-key-aqui';</code>
 <script>
 // ═══════════════════════════════
 //  SUPABASE CONFIG
-//  ↓ Reemplaza con tus credenciales
 // ═══════════════════════════════
 const SUPABASE_URL = 'https://jnyjwaxwnzlqeugketrw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpueWp3YXh3bnpscWV1Z2tldHJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzY1MTksImV4cCI6MjA5MTkxMjUxOX0.Iokinbg-dut2ZepOgsTCVCQETZYTYGSbxjYskbyge2w';
@@ -843,25 +1715,21 @@ try {
 // ═══════════════════════════════
 //  STATE
 // ═══════════════════════════════
-let currentRole = null;  // 'admin' | 'viewer' | null (público)
+let currentRole = null;
 let currentUser = '';
-let allRecords  = {};    // { unit1: [], unit2: [], ... }
+let allRecords  = {};
 let currentUnit = null;
 let deleteTarget = null;
 
-// Credenciales del administrador único
 const DEMO_ADMIN = { user: 'newkevingc', pass: 'kohana160' };
-// Visualizadores demo (en memoria)
 let demoViewers = [];
 
 const UNITS = [
-  { id: 'unit1', table: 'unit1_records', label: 'Unidad 1', color: '#e84c0e', num: '01' },
-  { id: 'unit2', table: 'unit2_records', label: 'Unidad 2', color: '#1a6b45', num: '02' },
-  { id: 'unit3', table: 'unit3_records', label: 'Unidad 3', color: '#1a3a6b', num: '03' },
-  { id: 'unit4', table: 'unit4_records', label: 'Unidad 4', color: '#c8960c', num: '04' },
+  { id: 'unit1', table: 'unit1_records', label: 'Unidad 1', color: '#4f8eff', num: '01' },
+  { id: 'unit2', table: 'unit2_records', label: 'Unidad 2', color: '#22c78a', num: '02' },
+  { id: 'unit3', table: 'unit3_records', label: 'Unidad 3', color: '#a78bfa', num: '03' },
+  { id: 'unit4', table: 'unit4_records', label: 'Unidad 4', color: '#f0b429', num: '04' },
 ];
-
-// Inicializar estructura
 UNITS.forEach(u => { allRecords[u.id] = []; });
 
 // ═══════════════════════════════
@@ -876,9 +1744,6 @@ function goToLogin()   { showPage('page-login'); hideMessages(); }
 function goToMain()    { showPage('page-main'); refreshAll(); }
 function goToPublic()  { buildUnitsGrid('units-grid-public', false); showPage('page-public'); }
 
-// ═══════════════════════════════
-//  TAB SWITCH (login/registro)
-// ═══════════════════════════════
 function switchTab(tab) {
   hideMessages();
   document.getElementById('tab-login').classList.toggle('active', tab === 'login');
@@ -889,13 +1754,8 @@ function switchTab(tab) {
 
 function togglePass(inputId, btn) {
   const el = document.getElementById(inputId);
-  if (el.type === 'password') {
-    el.type = 'text';
-    btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
-  } else {
-    el.type = 'password';
-    btn.innerHTML = '<i class="bi bi-eye"></i>';
-  }
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.innerHTML = el.type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
 }
 
 // ═══════════════════════════════
@@ -904,84 +1764,49 @@ function togglePass(inputId, btn) {
 async function doLogin() {
   const username = document.getElementById('login-user').value.trim();
   const password = document.getElementById('login-pass').value;
-
   if (!username || !password) { showLoginError('Ingresa tu usuario y contraseña.'); return; }
-
   hideMessages();
 
-  // ── Admin hardcodeado: siempre tiene prioridad, con o sin Supabase
   if (username === DEMO_ADMIN.user && password === DEMO_ADMIN.pass) {
-    await setupSession(username, 'Administrador', 'admin');
-    return;
+    await setupSession(username, 'Administrador', 'admin'); return;
   }
 
   if (sbReady && sb) {
-    // ── Supabase: RPC para visualizadores registrados
     try {
-      const { data, error } = await sb.rpc('verify_login', {
-        p_username: username,
-        p_password: password
-      });
-      if (error || !data || data.length === 0) {
-        showLoginError('Usuario o contraseña incorrectos.');
-        return;
-      }
+      const { data, error } = await sb.rpc('verify_login', { p_username: username, p_password: password });
+      if (error || !data || data.length === 0) { showLoginError('Usuario o contraseña incorrectos.'); return; }
       const user = data[0];
       await setupSession(user.username, user.full_name || user.username, user.role);
-    } catch(e) {
-      showLoginError('Error al conectar: ' + e.message);
-    }
+    } catch(e) { showLoginError('Error al conectar: ' + e.message); }
   } else {
-    // ── Demo mode (visualizadores en memoria)
     const viewer = demoViewers.find(v => v.user === username && v.pass === password);
-    if (viewer) {
-      await setupSession(username, viewer.name, 'viewer');
-    } else {
-      showLoginError('Usuario o contraseña incorrectos.');
-    }
+    if (viewer) { await setupSession(username, viewer.name, 'viewer'); }
+    else { showLoginError('Usuario o contraseña incorrectos.'); }
   }
 }
 
-// ═══════════════════════════════
-//  AUTH — REGISTRO VISUALIZADOR
-// ═══════════════════════════════
 async function doRegister() {
   const fullName = document.getElementById('reg-name').value.trim();
   const username = document.getElementById('reg-user').value.trim();
   const pass     = document.getElementById('reg-pass').value;
   const pass2    = document.getElementById('reg-pass2').value;
-
   if (!fullName || !username || !pass) { showLoginError('Todos los campos son requeridos.'); return; }
   if (pass.length < 6) { showLoginError('La contraseña debe tener al menos 6 caracteres.'); return; }
   if (pass !== pass2)  { showLoginError('Las contraseñas no coinciden.'); return; }
   if (username === DEMO_ADMIN.user || username === 'newkevingc@gmail.com') { showLoginError('Ese nombre de usuario no está disponible.'); return; }
-
   hideMessages();
 
   if (sbReady && sb) {
     try {
-      const { data, error } = await sb.rpc('register_viewer', {
-        p_username: username,
-        p_password: pass,
-        p_full_name: fullName
-      });
+      const { data, error } = await sb.rpc('register_viewer', { p_username: username, p_password: pass, p_full_name: fullName });
       if (error) throw error;
-      if (data === 'username_taken') {
-        showLoginError('Ese usuario ya existe. Elige otro.');
-        return;
-      }
-      showLoginSuccess('¡Cuenta creada! Ya puedes ingresar con tu usuario y contraseña.');
+      if (data === 'username_taken') { showLoginError('Ese usuario ya existe. Elige otro.'); return; }
+      showLoginSuccess('¡Cuenta creada! Ya puedes ingresar.');
       switchTab('login');
       document.getElementById('login-user').value = username;
-    } catch(e) {
-      showLoginError('Error: ' + e.message);
-    }
+    } catch(e) { showLoginError('Error: ' + e.message); }
   } else {
-    // Demo mode
-    if (demoViewers.find(v => v.user === username)) {
-      showLoginError('Ese usuario ya existe. Elige otro.');
-      return;
-    }
+    if (demoViewers.find(v => v.user === username)) { showLoginError('Ese usuario ya existe.'); return; }
     demoViewers.push({ user: username, pass, name: fullName });
     showLoginSuccess('¡Cuenta creada! Ya puedes ingresar.');
     switchTab('login');
@@ -989,9 +1814,6 @@ async function doRegister() {
   }
 }
 
-// ═══════════════════════════════
-//  SETUP SESSION
-// ═══════════════════════════════
 async function setupSession(username, displayName, role) {
   currentRole = role;
   currentUser = username;
@@ -1000,27 +1822,20 @@ async function setupSession(username, displayName, role) {
   badge.className = 'role-tag ' + (role === 'admin' ? 'role-admin' : 'role-viewer');
   badge.innerHTML = role === 'admin' ? '👑 Admin' : '👁 Viewer';
   document.getElementById('user-name-label').textContent = displayName;
-
   document.getElementById('stat-role-icon').textContent  = role === 'admin' ? '👑' : '👁';
   document.getElementById('stat-role-label').textContent = role === 'admin' ? 'Administrador' : 'Visualizador';
 
-  // Mostrar botón Archivos solo para admin
   const btnFiles = document.getElementById('btn-files-page');
   if (btnFiles) btnFiles.style.display = role === 'admin' ? 'inline-flex' : 'none';
 
   buildUnitsGrid('units-grid', true);
-
-  if (sbReady && sb) {
-    await loadAllRecords();
-  }
-
+  if (sbReady && sb) await loadAllRecords();
   showPage('page-main');
   refreshAll();
 }
 
 function doLogout() {
-  currentRole = null;
-  currentUser = '';
+  currentRole = null; currentUser = '';
   UNITS.forEach(u => { allRecords[u.id] = []; });
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
@@ -1028,7 +1843,7 @@ function doLogout() {
 }
 
 // ═══════════════════════════════
-//  SUPABASE — CARGAR DATOS
+//  SUPABASE
 // ═══════════════════════════════
 async function loadAllRecords() {
   if (!sb) return;
@@ -1058,16 +1873,12 @@ function buildUnitsGrid(gridId, loggedIn) {
     div.className = 'unit-tile';
     div.style.setProperty('--tile-color', u.color);
     div.innerHTML = `
-      <div class="unit-tile-num">— ${u.num}</div>
+      <div class="unit-tile-num">${u.num}</div>
       <div class="unit-tile-name">${u.label}</div>
       <div class="unit-tile-count" id="${gridId}-count-${u.id}">— registros</div>
       <div class="unit-tile-arrow">${loggedIn ? 'Ver registros' : 'Vista pública'} <i class="bi bi-arrow-right"></i></div>
     `;
-    if (loggedIn) {
-      div.onclick = () => openUnit(u.id);
-    } else {
-      div.onclick = () => openPublicUnit(u.id);
-    }
+    div.onclick = () => loggedIn ? openUnit(u.id) : openPublicUnit(u.id);
     grid.appendChild(div);
   });
 }
@@ -1078,9 +1889,7 @@ function openUnit(unitId) {
   document.getElementById('detail-title').textContent = u?.label || unitId;
   document.getElementById('detail-tag').textContent   = u?.label || unitId;
   document.getElementById('unit-search').value = '';
-
   document.getElementById('btn-new-record').style.display = currentRole === 'admin' ? 'inline-flex' : 'none';
-
   showPage('page-detail');
   updateDetailStats();
   renderUnitTable();
@@ -1094,15 +1903,13 @@ function refreshAll() {
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-total-landing').textContent = total;
   document.getElementById('limit-warn').style.display = total >= 999 ? 'block' : 'none';
-
   UNITS.forEach(u => {
     const cnt = allRecords[u.id].length;
-    ['units-grid', 'units-grid-public'].forEach(gridId => {
-      const el = document.getElementById(`${gridId}-count-${u.id}`);
+    ['units-grid', 'units-grid-public'].forEach(gid => {
+      const el = document.getElementById(`${gid}-count-${u.id}`);
       if (el) el.textContent = `${cnt} ${cnt === 1 ? 'registro' : 'registros'}`;
     });
   });
-
   if (currentUnit) { updateDetailStats(); renderUnitTable(); }
 }
 
@@ -1115,28 +1922,23 @@ function updateDetailStats() {
 // ═══════════════════════════════
 function getFiltered() {
   const q = (document.getElementById('unit-search')?.value || '').toLowerCase();
-  return (allRecords[currentUnit] || []).filter(r => {
-    if (!q) return true;
-    return `${r.name} ${r.email} ${r.department || ''}`.toLowerCase().includes(q);
-  });
+  return (allRecords[currentUnit] || []).filter(r =>
+    !q || `${r.name} ${r.email} ${r.department || ''}`.toLowerCase().includes(q)
+  );
 }
 
 function renderUnitTable() {
-  const tbody  = document.getElementById('unit-tbody');
+  const tbody = document.getElementById('unit-tbody');
   const emptyEl = document.getElementById('unit-empty');
-  const noRes  = document.getElementById('unit-no-results');
+  const noRes   = document.getElementById('unit-no-results');
   const unitTotal = allRecords[currentUnit]?.length || 0;
   const filtered  = getFiltered();
 
   document.getElementById('detail-stat-filtered').textContent = filtered.length;
 
-  if (unitTotal === 0) {
-    tbody.innerHTML = ''; emptyEl.style.display = ''; noRes.style.display = 'none'; return;
-  }
+  if (unitTotal === 0) { tbody.innerHTML = ''; emptyEl.style.display = ''; noRes.style.display = 'none'; return; }
   emptyEl.style.display = 'none';
-  if (filtered.length === 0) {
-    tbody.innerHTML = ''; noRes.style.display = ''; return;
-  }
+  if (filtered.length === 0) { tbody.innerHTML = ''; noRes.style.display = ''; return; }
   noRes.style.display = 'none';
 
   const isAdmin = currentRole === 'admin';
@@ -1148,13 +1950,13 @@ function renderUnitTable() {
       <td><span class="td-dept">${esc(rec.department || '—')}</span></td>
       <td>${rec.file_name
         ? `<button class="td-file-btn" onclick="viewFile('${rec.__backendId}','${currentUnit}')"><i class="bi bi-paperclip"></i>${esc(rec.file_name)}</button>`
-        : `<span style="color:var(--muted);font-size:0.78rem">—</span>`}</td>
+        : `<span style="color:var(--text-3);font-size:0.78rem">—</span>`}</td>
       <td class="td-date">${date}</td>
       <td class="actions-cell">
         ${isAdmin
-          ? `<button class="btn-icon-sm me-1" onclick="editRecord('${rec.__backendId}')" title="Editar" style="color:var(--cobalt);border-color:rgba(26,58,107,0.25)"><i class="bi bi-pencil" style="font-size:0.78rem"></i></button>
-             <button class="btn-icon-sm" onclick="confirmDeleteRecord('${rec.__backendId}')" title="Eliminar" style="color:var(--fire);border-color:rgba(232,76,14,0.25)"><i class="bi bi-trash3" style="font-size:0.78rem"></i></button>`
-          : `<span style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase">Solo lectura</span>`}
+          ? `<button class="btn btn-icon" onclick="editRecord('${rec.__backendId}')" title="Editar" style="color:var(--accent);border-color:rgba(79,142,255,0.25);margin-right:0.35rem"><i class="bi bi-pencil" style="font-size:0.72rem"></i></button>
+             <button class="btn btn-icon" onclick="confirmDeleteRecord('${rec.__backendId}')" title="Eliminar" style="color:var(--ember);border-color:rgba(255,92,53,0.25)"><i class="bi bi-trash3" style="font-size:0.72rem"></i></button>`
+          : `<span style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text-3);text-transform:uppercase">Solo lectura</span>`}
       </td>
     </tr>`;
   }).join('');
@@ -1178,7 +1980,7 @@ function editRecord(bid) {
   if (!rec) return;
   resetForm();
   document.getElementById('record-modal-title').textContent = 'Editar Registro';
-  document.getElementById('form-id').value    = bid;
+  document.getElementById('form-id').value = bid;
   document.getElementById('form-unit-val').value = currentUnit;
   document.getElementById('form-name').value  = rec.name  || '';
   document.getElementById('form-email').value = rec.email || '';
@@ -1186,10 +1988,7 @@ function editRecord(bid) {
   document.getElementById('record-modal').classList.add('active');
 }
 
-function closeRecordModal() {
-  document.getElementById('record-modal').classList.remove('active');
-  resetForm();
-}
+function closeRecordModal() { document.getElementById('record-modal').classList.remove('active'); resetForm(); }
 
 function resetForm() {
   ['form-name','form-email','form-dept'].forEach(id => { document.getElementById(id).value = ''; });
@@ -1202,9 +2001,7 @@ function updateFileLabel() {
   if (fi.files.length > 0) {
     document.getElementById('file-chosen-name').textContent = fi.files[0].name;
     document.getElementById('file-chosen').style.display = 'block';
-  } else {
-    document.getElementById('file-chosen').style.display = 'none';
-  }
+  } else { document.getElementById('file-chosen').style.display = 'none'; }
 }
 
 async function submitRecord() {
@@ -1217,22 +2014,22 @@ async function submitRecord() {
   const txt  = document.getElementById('form-submit-text');
   btn.disabled = true; spin.style.display = 'inline-block'; txt.textContent = 'Guardando…';
 
-  const id      = document.getElementById('form-id').value;
-  const unitId  = document.getElementById('form-unit-val').value || currentUnit;
-  const u       = UNITS.find(u => u.id === unitId);
-  const fi      = document.getElementById('form-file');
+  const id     = document.getElementById('form-id').value;
+  const unitId = document.getElementById('form-unit-val').value || currentUnit;
+  const u      = UNITS.find(u => u.id === unitId);
+  const fi     = document.getElementById('form-file');
   let fileName = '', fileContent = '';
   if (fi.files.length > 0) {
     fileName = fi.files[0].name;
-    fileContent = await new Promise((resolve) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.onerror = () => resolve(''); reader.readAsDataURL(fi.files[0]); });
+    fileContent = await new Promise(resolve => {
+      const r = new FileReader();
+      r.onload = e => resolve(e.target.result);
+      r.onerror = () => resolve('');
+      r.readAsDataURL(fi.files[0]);
+    });
   }
 
-  const obj = {
-    name, email,
-    department: document.getElementById('form-dept').value.trim(),
-    created_by: currentUser,
-    ...(fileName ? { file_name: fileName, file_content: fileContent } : {}),
-  };
+  const obj = { name, email, department: document.getElementById('form-dept').value.trim(), created_by: currentUser, ...(fileName ? { file_name: fileName, file_content: fileContent } : {}) };
 
   try {
     if (sbReady && sb && u) {
@@ -1245,7 +2042,6 @@ async function submitRecord() {
       }
       await loadUnitRecords(unitId);
     } else {
-      // Demo mode
       if (id) {
         const arr = allRecords[unitId] || [];
         const idx = arr.findIndex(r => r.__backendId === id);
@@ -1258,9 +2054,7 @@ async function submitRecord() {
     refreshAll();
     toast(id ? 'Registro actualizado' : 'Registro creado');
     closeRecordModal();
-  } catch(e) {
-    toast('Error: ' + e.message, 'err');
-  }
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
 
   btn.disabled = false; spin.style.display = 'none'; txt.textContent = 'Guardar';
 }
@@ -1276,11 +2070,7 @@ function confirmDeleteRecord(bid) {
   document.getElementById('delete-name-label').textContent = `Se eliminará el registro de "${rec.name}"`;
   document.getElementById('delete-modal').classList.add('active');
 }
-
-function closeDeleteModal() {
-  document.getElementById('delete-modal').classList.remove('active');
-  deleteTarget = null;
-}
+function closeDeleteModal() { document.getElementById('delete-modal').classList.remove('active'); deleteTarget = null; }
 
 async function confirmDelete() {
   if (!deleteTarget || currentRole !== 'admin') return;
@@ -1296,62 +2086,19 @@ async function confirmDelete() {
       if (error) throw error;
       await loadUnitRecords(deleteTarget.unitId);
     } else {
-      allRecords[deleteTarget.unitId] = (allRecords[deleteTarget.unitId] || [])
-        .filter(r => r.__backendId !== deleteTarget.__backendId);
+      allRecords[deleteTarget.unitId] = (allRecords[deleteTarget.unitId] || []).filter(r => r.__backendId !== deleteTarget.__backendId);
     }
-    refreshAll();
-    toast('Registro eliminado');
-    closeDeleteModal();
-  } catch(e) {
-    toast('Error: ' + e.message, 'err');
-  }
+    refreshAll(); toast('Registro eliminado'); closeDeleteModal();
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
 
   btn.disabled = false; spin.style.display = 'none'; txt.textContent = 'Eliminar';
   deleteTarget = null;
 }
 
 // ═══════════════════════════════
-//  FILE VIEWER
+//  FILE VIEWER (modal pequeño)
 // ═══════════════════════════════
-function viewFile(bid, unitId) {
-  const arr = allRecords[unitId] || [];
-  const rec = arr.find(r => r.__backendId === bid);
-  if (!rec?.file_content) return;
-  document.getElementById('viewer-title').textContent = rec.file_name || 'Archivo';
-  const container = document.getElementById('viewer-content');
-  const dataUrl = rec.file_content;
-  if (dataUrl.startsWith('data:image/')) {
-    container.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.style.cssText = 'max-width:100%;border-radius:6px;display:block;margin:auto';
-    container.appendChild(img);
-  } else if (dataUrl.startsWith('data:application/pdf')) {
-    container.innerHTML = '';
-    const embed = document.createElement('embed');
-    embed.src = dataUrl;
-    embed.type = 'application/pdf';
-    embed.style.cssText = 'width:100%;height:500px;border:none';
-    container.appendChild(embed);
-  } else if (dataUrl.startsWith('data:')) {
-    // Other binary: show download link
-    container.innerHTML = '';
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = rec.file_name || 'archivo';
-    a.textContent = 'Descargar ' + (rec.file_name || 'archivo');
-    a.style.cssText = 'color:var(--fire);font-family:Space Mono,monospace;font-size:0.85rem';
-    container.appendChild(a);
-  } else {
-    container.textContent = dataUrl;
-  }
-  document.getElementById('viewer-modal').classList.add('active');
-}
 function closeViewerModal() { document.getElementById('viewer-modal').classList.remove('active'); }
-
-// ═══════════════════════════════
-//  SETUP MODAL
-// ═══════════════════════════════
 function showSupabaseSetup() { document.getElementById('setup-modal').classList.add('active'); }
 function closeSetupModal()   { document.getElementById('setup-modal').classList.remove('active'); }
 
@@ -1363,48 +2110,41 @@ function exportMainCSV() {
   dlCSV(['Unidad,Total', ...rows].join('\n'), `unidades_${ts()}.csv`);
   toast('CSV exportado');
 }
-
 function exportUnitCSV() {
   const data = getFiltered();
   if (!data.length) { toast('Sin datos', 'inf'); return; }
   const hdr = 'Nombre,Email,Departamento,Archivo,Fecha';
   const rows = data.map(r =>
-    [r.name, r.email, r.department||'', r.file_name||'',
-     r.created_at ? new Date(r.created_at).toLocaleDateString('es-ES') : '']
+    [r.name, r.email, r.department||'', r.file_name||'', r.created_at ? new Date(r.created_at).toLocaleDateString('es-ES') : '']
     .map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')
   );
   dlCSV([hdr, ...rows].join('\n'), `${currentUnit}_${ts()}.csv`);
   toast('CSV exportado');
 }
-
 function dlCSV(csv, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
   a.download = name; a.click(); URL.revokeObjectURL(a.href);
 }
-
 function ts() { return new Date().toISOString().slice(0,10); }
 
 // ═══════════════════════════════
 //  MENSAJES / TOASTS
 // ═══════════════════════════════
 function showLoginError(msg) {
-  const el = document.getElementById('login-error');
   document.getElementById('login-error-msg').textContent = msg;
-  el.classList.add('show');
+  document.getElementById('login-error').classList.add('show');
   document.getElementById('login-success').classList.remove('show');
 }
 function showLoginSuccess(msg) {
-  const el = document.getElementById('login-success');
   document.getElementById('login-success-msg').textContent = msg;
-  el.classList.add('show');
+  document.getElementById('login-success').classList.add('show');
   document.getElementById('login-error').classList.remove('show');
 }
 function hideMessages() {
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('login-success').classList.remove('show');
 }
-
 function toast(msg, type='ok') {
   const map  = { ok:'t-ok', err:'t-err', inf:'t-inf' };
   const icon = { ok:'bi-check-circle', err:'bi-x-circle', inf:'bi-info-circle' };
@@ -1415,10 +2155,7 @@ function toast(msg, type='ok') {
   setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .3s'; }, 2700);
   setTimeout(() => el.remove(), 3100);
 }
-
-function esc(s) {
-  const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML;
-}
+function esc(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
 
 // ═══════════════════════════════
 //  VISTA PÚBLICA DE UNIDAD
@@ -1431,23 +2168,19 @@ async function openPublicUnit(unitId) {
   document.getElementById('pub-detail-title').textContent = u?.label || unitId;
   document.getElementById('pub-detail-tag').textContent   = u?.label || unitId;
   document.getElementById('pub-unit-search').value = '';
-
-  // Cargar desde Supabase si está disponible
   if (sbReady && sb) {
     const { data, error } = await sb.from(u.table).select('*').order('created_at', { ascending: false });
     if (!error) allRecords[unitId] = (data || []).map(r => ({ ...r, __backendId: r.id }));
   }
-
   showPage('page-public-detail');
   renderPublicUnitTable();
 }
 
 function getPublicFiltered() {
   const q = (document.getElementById('pub-unit-search')?.value || '').toLowerCase();
-  return (allRecords[currentPublicUnit] || []).filter(r => {
-    if (!q) return true;
-    return `${r.name} ${r.email} ${r.department || ''}`.toLowerCase().includes(q);
-  });
+  return (allRecords[currentPublicUnit] || []).filter(r =>
+    !q || `${r.name} ${r.email} ${r.department || ''}`.toLowerCase().includes(q)
+  );
 }
 
 function renderPublicUnitTable() {
@@ -1460,13 +2193,9 @@ function renderPublicUnitTable() {
   document.getElementById('pub-detail-stat-total').textContent    = unitTotal;
   document.getElementById('pub-detail-stat-filtered').textContent = filtered.length;
 
-  if (unitTotal === 0) {
-    tbody.innerHTML = ''; emptyEl.style.display = ''; noRes.style.display = 'none'; return;
-  }
+  if (unitTotal === 0) { tbody.innerHTML = ''; emptyEl.style.display = ''; noRes.style.display = 'none'; return; }
   emptyEl.style.display = 'none';
-  if (filtered.length === 0) {
-    tbody.innerHTML = ''; noRes.style.display = ''; return;
-  }
+  if (filtered.length === 0) { tbody.innerHTML = ''; noRes.style.display = ''; return; }
   noRes.style.display = 'none';
 
   tbody.innerHTML = filtered.map(rec => {
@@ -1477,35 +2206,31 @@ function renderPublicUnitTable() {
       <td><span class="td-dept">${esc(rec.department || '—')}</span></td>
       <td>${rec.file_name
         ? `<button class="td-file-btn" onclick="viewFile('${rec.__backendId}','${currentPublicUnit}')"><i class="bi bi-paperclip"></i>${esc(rec.file_name)}</button>`
-        : `<span style="color:var(--muted);font-size:0.78rem">—</span>`}</td>
+        : `<span style="color:var(--text-3);font-size:0.78rem">—</span>`}</td>
       <td class="td-date">${date}</td>
     </tr>`;
   }).join('');
 }
 
 // ═══════════════════════════════
-//  PÁGINA VISOR DE ARCHIVO
-// ═══════════════════════════════
-// ═══════════════════════════════
 //  VISOR DE ARCHIVO (PDF.js)
 // ═══════════════════════════════
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-let viewerOrigin   = null;   // 'files' | 'unit'
-let viewerFile     = null;   // { fileName, fileContent, type, ... }
+let viewerOrigin   = null;
+let viewerFile     = null;
 let pdfDoc         = null;
 let pdfCurrentPage = 1;
 let pdfZoom        = 1.0;
-let pdfRendering   = false;
+let filesPageItems = [];
+let currentFileFilter = 'all';
 
-/* ── Entrada desde página Archivos ── */
 function openPreviewModal(idx) {
   const f = filesPageItems[idx];
   if (f) { viewerOrigin = 'files'; _launchViewer(f); }
 }
 
-/* ── Entrada desde tabla de unidad ── */
 function viewFile(bid, unitId) {
   const arr = allRecords[unitId] || [];
   const rec = arr.find(r => r.__backendId === bid);
@@ -1513,31 +2238,19 @@ function viewFile(bid, unitId) {
   const u = UNITS.find(u => u.id === unitId);
   viewerOrigin = 'unit';
   _launchViewer({
-    fileName:    rec.file_name,
-    fileContent: rec.file_content,
-    ownerName:   rec.name,
-    unitLabel:   u?.label || unitId,
-    type:        getFileType(rec.file_name, rec.file_content),
+    fileName: rec.file_name, fileContent: rec.file_content,
+    ownerName: rec.name, unitLabel: u?.label || unitId,
+    type: getFileType(rec.file_name, rec.file_content),
   });
 }
 
 function _launchViewer(f) {
-  viewerFile     = f;
-  pdfDoc         = null;
-  pdfCurrentPage = 1;
-  pdfZoom        = 1.0;
-
-  // Actualizar header
+  viewerFile = f; pdfDoc = null; pdfCurrentPage = 1; pdfZoom = 1.0;
   document.getElementById('viewer-filename').textContent = f.fileName;
   const iconEl = document.getElementById('viewer-type-icon');
-  if      (f.type === 'pdf')   { iconEl.className = 'bi bi-file-earmark-pdf-fill'; iconEl.style.color = '#e84c0e'; }
-  else if (f.type === 'image') { iconEl.className = 'bi bi-image-fill';            iconEl.style.color = '#1a6b45'; }
-  else                         { iconEl.className = 'bi bi-file-earmark-fill';     iconEl.style.color = '#1a3a6b'; }
-
-  // Ocultar controles de PDF si no es PDF
-  const pdfCtrls = document.querySelectorAll('.pdf-only');
-  pdfCtrls.forEach(el => el.style.display = f.type === 'pdf' ? '' : 'none');
-
+  if (f.type === 'pdf')        { iconEl.className = 'bi bi-file-earmark-pdf-fill'; iconEl.style.color = 'var(--ember)'; }
+  else if (f.type === 'image') { iconEl.className = 'bi bi-image-fill';            iconEl.style.color = 'var(--jade)'; }
+  else                         { iconEl.className = 'bi bi-file-earmark-fill';     iconEl.style.color = 'var(--accent)'; }
   showPage('page-viewer');
   _renderViewer();
 }
@@ -1548,50 +2261,29 @@ async function _renderViewer() {
   if (!f) return;
 
   if (f.type === 'pdf') {
-    // Mostrar loading
-    body.innerHTML = '<div class="viewer-loading"><div class="spin"></div><span style="font-family:Space Mono,monospace;font-size:0.75rem;color:rgba(240,240,240,0.5)">Cargando PDF…</span></div>';
-
+    body.innerHTML = '<div class="viewer-loading"><div class="spin"></div><span style="font-family:JetBrains Mono,monospace;font-size:0.72rem;color:rgba(255,255,255,0.3)">Cargando PDF…</span></div>';
     try {
-      // Convertir base64 a Uint8Array
       const b64  = f.fileContent.split(',')[1];
       const raw  = atob(b64);
       const data = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) data[i] = raw.charCodeAt(i);
-
       pdfDoc = await pdfjsLib.getDocument({ data }).promise;
       document.getElementById('viewer-zoom-label').textContent = Math.round(pdfZoom * 100) + '%';
-
-      // Construir layout: miniaturas izquierda + área principal derecha
-      body.innerHTML = `
-        <div class="viewer-thumbs" id="pdf-thumbs"></div>
-        <div class="viewer-main"  id="pdf-main"></div>`;
-
+      body.innerHTML = `<div class="viewer-thumbs" id="pdf-thumbs"></div><div class="viewer-main" id="pdf-main"></div>`;
       await _renderAllPages();
       _scrollToPage(pdfCurrentPage);
     } catch(e) {
-      body.innerHTML = `<div class="viewer-other-wrap"><i class="bi bi-exclamation-triangle"></i><div><div style="font-size:1.1rem;font-weight:700;margin-bottom:0.5rem">Error al cargar el PDF</div><div style="opacity:0.5;font-size:0.82rem">${esc(e.message)}</div><button class="btn-fire" style="margin-top:1rem" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> Descargar</button></div></div>`;
+      body.innerHTML = `<div class="viewer-other-wrap"><i class="bi bi-exclamation-triangle"></i><div><div style="font-size:1.1rem;font-weight:700;margin-bottom:0.5rem">Error al cargar el PDF</div><div style="opacity:0.4;font-size:0.82rem">${esc(e.message)}</div><button class="btn btn-ember" style="margin-top:1rem" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> Descargar</button></div></div>`;
     }
-
   } else if (f.type === 'image') {
     body.innerHTML = '';
-    const wrap = document.createElement('div');
-    wrap.className = 'viewer-img-wrap';
-    const img = document.createElement('img');
-    img.src = f.fileContent;
-    img.alt = f.fileName;
-    wrap.appendChild(img);
-    body.appendChild(wrap);
+    const wrap = document.createElement('div'); wrap.className = 'viewer-img-wrap';
+    const img = document.createElement('img'); img.src = f.fileContent; img.alt = f.fileName;
+    wrap.appendChild(img); body.appendChild(wrap);
     document.getElementById('viewer-page-label').textContent = '—';
     document.getElementById('viewer-zoom-label').textContent = '—';
-
   } else {
-    body.innerHTML = `<div class="viewer-other-wrap">
-      <i class="bi bi-file-earmark-fill"></i>
-      <div>
-        <div style="font-size:1.3rem;font-weight:700;margin-bottom:0.5rem">${esc(f.fileName)}</div>
-        <div style="opacity:0.45;font-size:0.82rem;margin-bottom:1.5rem">Vista previa no disponible para este formato</div>
-        <button class="btn-fire" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> Descargar</button>
-      </div></div>`;
+    body.innerHTML = `<div class="viewer-other-wrap"><i class="bi bi-file-earmark-fill"></i><div><div style="font-size:1.3rem;font-weight:700;margin-bottom:0.5rem">${esc(f.fileName)}</div><div style="opacity:0.4;font-size:0.82rem;margin-bottom:1.5rem">Vista previa no disponible para este formato</div><button class="btn btn-primary" onclick="downloadCurrentFile()"><i class="bi bi-download"></i> Descargar</button></div></div>`;
     document.getElementById('viewer-page-label').textContent = '—';
     document.getElementById('viewer-zoom-label').textContent = '—';
   }
@@ -1602,52 +2294,28 @@ async function _renderAllPages() {
   const thumbsEl = document.getElementById('pdf-thumbs');
   const mainEl   = document.getElementById('pdf-main');
   if (!thumbsEl || !mainEl) return;
-
-  thumbsEl.innerHTML = '';
-  mainEl.innerHTML   = '';
-
+  thumbsEl.innerHTML = ''; mainEl.innerHTML = '';
   const total = pdfDoc.numPages;
   document.getElementById('viewer-page-label').textContent = `${pdfCurrentPage} / ${total}`;
 
   for (let n = 1; n <= total; n++) {
     const page = await pdfDoc.getPage(n);
-
-    // ── Página principal ──
-    const vp    = page.getViewport({ scale: pdfZoom * _deviceScale() });
-    const wrap  = document.createElement('div');
-    wrap.className   = 'pdf-page-wrap';
-    wrap.id          = `pdf-page-${n}`;
-    wrap.dataset.page = n;
-    const canvas  = document.createElement('canvas');
-    canvas.width  = vp.width;
-    canvas.height = vp.height;
-    canvas.style.width  = (vp.width  / _deviceScale()) + 'px';
-    canvas.style.height = (vp.height / _deviceScale()) + 'px';
-    wrap.appendChild(canvas);
-    mainEl.appendChild(wrap);
+    const vp   = page.getViewport({ scale: pdfZoom * _deviceScale() });
+    const wrap = document.createElement('div'); wrap.className = 'pdf-page-wrap'; wrap.id = `pdf-page-${n}`; wrap.dataset.page = n;
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    canvas.style.width = (vp.width / _deviceScale()) + 'px'; canvas.style.height = (vp.height / _deviceScale()) + 'px';
+    wrap.appendChild(canvas); mainEl.appendChild(wrap);
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
 
-    // ── Miniatura ──
-    const tvp     = page.getViewport({ scale: 0.25 * _deviceScale() });
-    const tWrap   = document.createElement('div');
-    tWrap.className   = `thumb-item${n === pdfCurrentPage ? ' active' : ''}`;
-    tWrap.id          = `thumb-${n}`;
-    tWrap.onclick     = () => _scrollToPage(n);
-    const tCanvas = document.createElement('canvas');
-    tCanvas.width  = tvp.width;
-    tCanvas.height = tvp.height;
-    tCanvas.style.width  = '100%';
-    tCanvas.style.height = 'auto';
+    const tvp   = page.getViewport({ scale: 0.25 * _deviceScale() });
+    const tWrap = document.createElement('div'); tWrap.className = `thumb-item${n === pdfCurrentPage ? ' active' : ''}`; tWrap.id = `thumb-${n}`; tWrap.onclick = () => _scrollToPage(n);
+    const tCanvas = document.createElement('canvas'); tCanvas.width = tvp.width; tCanvas.height = tvp.height; tCanvas.style.width = '100%'; tCanvas.style.height = 'auto';
     tWrap.appendChild(tCanvas);
-    const numEl = document.createElement('div');
-    numEl.className   = 'thumb-num';
-    numEl.textContent = n;
-    tWrap.appendChild(numEl);
+    const numEl = document.createElement('div'); numEl.className = 'thumb-num'; numEl.textContent = n; tWrap.appendChild(numEl);
     thumbsEl.appendChild(tWrap);
     await page.render({ canvasContext: tCanvas.getContext('2d'), viewport: tvp }).promise;
   }
-
-  // Detectar página visible al hacer scroll
   mainEl.addEventListener('scroll', _onMainScroll, { passive: true });
 }
 
@@ -1656,10 +2324,8 @@ function _deviceScale() { return window.devicePixelRatio || 1; }
 function _scrollToPage(n) {
   pdfCurrentPage = n;
   document.getElementById('viewer-page-label').textContent = `${n} / ${pdfDoc?.numPages || '—'}`;
-  // Scroll en área principal
   const el = document.getElementById(`pdf-page-${n}`);
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  // Activar miniatura
   document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
   const th = document.getElementById(`thumb-${n}`);
   if (th) { th.classList.add('active'); th.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
@@ -1705,16 +2371,13 @@ function closeViewer() {
 function downloadCurrentFile() {
   const f = viewerFile;
   if (!f) return;
-  const a = document.createElement('a');
-  a.href = f.fileContent; a.download = f.fileName; a.click();
+  const a = document.createElement('a'); a.href = f.fileContent; a.download = f.fileName; a.click();
 }
 
-// Init
-
-function goToFiles() {
-  showPage('page-files');
-  renderFilesPage();
-}
+// ═══════════════════════════════
+//  FILES PAGE
+// ═══════════════════════════════
+function goToFiles() { showPage('page-files'); renderFilesPage(); }
 
 function setFileFilter(chip, type) {
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
@@ -1730,17 +2393,15 @@ function getFileType(fileName, dataUrl) {
   if (ext === 'pdf' || (dataUrl && dataUrl.startsWith('data:application/pdf'))) return 'pdf';
   return 'other';
 }
-
 function getFileIcon(type) {
   if (type === 'pdf')   return 'bi-file-earmark-pdf-fill';
   if (type === 'image') return 'bi-image-fill';
   return 'bi-file-earmark-fill';
 }
-
 function getFileColor(type) {
-  if (type === 'pdf')   return 'var(--fire)';
+  if (type === 'pdf')   return 'var(--ember)';
   if (type === 'image') return 'var(--jade)';
-  return 'var(--cobalt)';
+  return 'var(--accent)';
 }
 
 function collectAllFiles() {
@@ -1749,16 +2410,10 @@ function collectAllFiles() {
     (allRecords[u.id] || []).forEach(rec => {
       if (rec.file_name && rec.file_content) {
         items.push({
-          bid:         rec.__backendId,
-          unitId:      u.id,
-          unitLabel:   u.label,
-          unitColor:   u.color,
-          fileName:    rec.file_name,
-          fileContent: rec.file_content,
-          ownerName:   rec.name,
-          ownerEmail:  rec.email,
-          date:        rec.created_at,
-          type:        getFileType(rec.file_name, rec.file_content),
+          bid: rec.__backendId, unitId: u.id, unitLabel: u.label, unitColor: u.color,
+          fileName: rec.file_name, fileContent: rec.file_content,
+          ownerName: rec.name, ownerEmail: rec.email, date: rec.created_at,
+          type: getFileType(rec.file_name, rec.file_content),
         });
       }
     });
@@ -1769,51 +2424,37 @@ function collectAllFiles() {
 function renderFilesPage() {
   const allFiles = collectAllFiles();
   const q = (document.getElementById('files-search')?.value || '').toLowerCase();
-  const gridEl   = document.getElementById('files-grid');
-  const emptyEl  = document.getElementById('files-empty');
-  const noResEl  = document.getElementById('files-no-results');
-  const badgeEl  = document.getElementById('files-badge');
+  const gridEl  = document.getElementById('files-grid');
+  const emptyEl = document.getElementById('files-empty');
+  const noResEl = document.getElementById('files-no-results');
+  const badgeEl = document.getElementById('files-badge');
 
-  // Filtrar
   let filtered = allFiles.filter(f => {
     const matchType = currentFileFilter === 'all' || f.type === currentFileFilter;
     const matchQ    = !q || `${f.fileName} ${f.ownerName} ${f.unitLabel}`.toLowerCase().includes(q);
     return matchType && matchQ;
   });
+  filesPageItems = filtered;
+  badgeEl.textContent = `${allFiles.length} archivo${allFiles.length !== 1 ? 's' : ''}`;
 
-  filesPageItems = filtered; // guardar para navegación
-
-  badgeEl.textContent = `${allFiles.length} archivo${allFiles.length !== 1 ? 's' : ''} en total`;
-
-  if (allFiles.length === 0) {
-    gridEl.innerHTML = ''; emptyEl.style.display = ''; noResEl.style.display = 'none'; return;
-  }
+  if (allFiles.length === 0) { gridEl.innerHTML = ''; emptyEl.style.display = ''; noResEl.style.display = 'none'; return; }
   emptyEl.style.display = 'none';
-  if (filtered.length === 0) {
-    gridEl.innerHTML = ''; noResEl.style.display = ''; return;
-  }
+  if (filtered.length === 0) { gridEl.innerHTML = ''; noResEl.style.display = ''; return; }
   noResEl.style.display = 'none';
 
   gridEl.innerHTML = filtered.map((f, i) => {
     const date = f.date ? new Date(f.date).toLocaleDateString('es-ES') : '—';
     const ext  = f.fileName.split('.').pop().toUpperCase().slice(0, 5);
-    let previewHtml = '';
-    if (f.type === 'image') {
-      previewHtml = `<img src="${esc(f.fileContent)}" loading="lazy" alt="${esc(f.fileName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-        <i class="bi ${getFileIcon(f.type)} file-type-icon" style="display:none;color:${getFileColor(f.type)}"></i>`;
-    } else {
-      previewHtml = `<i class="bi ${getFileIcon(f.type)} file-type-icon" style="color:${getFileColor(f.type)}"></i>`;
-    }
+    let previewHtml = f.type === 'image'
+      ? `<img src="${esc(f.fileContent)}" loading="lazy" alt="${esc(f.fileName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="bi ${getFileIcon(f.type)} file-type-icon" style="display:none;color:${getFileColor(f.type)}"></i>`
+      : `<i class="bi ${getFileIcon(f.type)} file-type-icon" style="color:${getFileColor(f.type)}"></i>`;
     return `<div class="file-card" onclick="openPreviewModal(${i})" title="${esc(f.fileName)}">
-      <div class="file-card-preview">
-        ${previewHtml}
-        <span class="file-type-badge">${esc(ext)}</span>
-      </div>
+      <div class="file-card-preview">${previewHtml}<span class="file-type-badge">${esc(ext)}</span></div>
       <div class="file-card-body">
         <div class="file-card-name">${esc(f.fileName)}</div>
         <div class="file-card-owner"><i class="bi bi-person" style="font-size:0.7rem"></i> ${esc(f.ownerName)}</div>
         <div class="file-card-meta">${date}</div>
-        <span class="file-card-unit" style="background:${f.unitColor}18;color:${f.unitColor}">${esc(f.unitLabel)}</span>
+        <span class="file-card-unit" style="background:${f.unitColor}18;color:${f.unitColor};border:1px solid ${f.unitColor}30">${esc(f.unitLabel)}</span>
       </div>
     </div>`;
   }).join('');
